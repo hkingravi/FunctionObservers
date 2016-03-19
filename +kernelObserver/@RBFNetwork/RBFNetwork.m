@@ -52,7 +52,8 @@ classdef RBFNetwork < handle
     k_params            = [];
     noise_params        = [];
     centers             = [];   % centers for RBF network; dim x ncent
-    weights             = [];   % weights for centers; 1 x ncent   
+    weights             = [];   % weights for centers; 1 x ncent  
+    mapper              = [];   % generic finite-dimensional feature map
     optimizer           = [];
     jitter              = 1e-4;  
     validation_portion  = 0.1; 
@@ -211,6 +212,7 @@ classdef RBFNetwork < handle
       end
       
       obj.params_final = [obj.k_obj.k_params; obj.noise];
+      obj.mapper = obj.create_map(); 
     end
     
     function [weights, mapped_data] = fit_current(obj, data, obs)
@@ -223,7 +225,8 @@ classdef RBFNetwork < handle
       %
       %  Outputs:
       %    -none 
-      mapped_data = kernelObserver.generic_kernel(data,obj.centers, obj.k_obj); % compute kernel matrix
+      obj.mapper = obj.create_map(); 
+      mapped_data = transpose(obj.mapper.transform(data)); % compute kernel matrix
       weights = (transpose(mapped_data)*mapped_data + ...
                  obj.noise^2*eye(obj.ncent))\(transpose(mapped_data)*transpose(obs));
     end  
@@ -251,7 +254,7 @@ classdef RBFNetwork < handle
       %  Outputs:
       %    K   - nsamp x ncent kernel matrix 
       try        
-        K = kernelObserver.generic_kernel(obj.centers, data, obj.k_obj); 
+        K = obj.mapper.transform(data); 
                 
       catch ME
         disp([ME.message '!'])
@@ -271,7 +274,7 @@ classdef RBFNetwork < handle
       %  Outputs:
       %    -none 
       try  
-        K = kernelObserver.generic_kernel(obj.centers, data_test, obj.k_obj);
+        K = obj.mapper.transform(data_test);
         if nargin > 2
           f = transpose(weights_in)*K;
         else
@@ -285,6 +288,12 @@ classdef RBFNetwork < handle
         throw(err);
       end
     end    
+    
+    function [mapper] = create_map(obj)
+      mapper = kernelObserver.FeatureMap('RBFNetwork');
+      map_struct.centers = obj.centers; map_struct.kernel_obj = obj.k_obj;
+      mapper.fit(map_struct);
+    end  
     
     function params = get_params(obj)
       params = obj.params_final;
