@@ -42,10 +42,7 @@ if(length(bandwidth) ~= 1) % scalar bandwidth
   bandwidth = bandwidth(1, 1);
 end
 
-d = x'*y;
-dx = sum(x.^2,1);
-dy = sum(y.^2,1);
-val = repmat(dx',1,length(dy)) + repmat(dy,length(dx),1) - 2*d;
+val = kernelObserver.dist_mat(x, y);
 
 if strcmpi(k_func,'laplacian')
   val = sqrt(val);

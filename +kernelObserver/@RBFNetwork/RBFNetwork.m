@@ -74,7 +74,7 @@ classdef RBFNetwork < handle
       %    parameters - scalar scaling parameter common for radial kernels.
       %    noise      - standard deviation for noise
       %    optimizer  - (optional) struct used for optimizing hyperparameters:
-      %                 must have fields - method -{'none', 'cv'}
+      %                 must have fields - method -{'none', 'cv', 'likelihood'}
       %                                  - nfolds - number of folds for cv
       %
       %  Outputs:
@@ -225,7 +225,7 @@ classdef RBFNetwork < handle
       %
       %  Outputs:
       %    -none 
-      obj.mapper = obj.create_map(); 
+      obj.mapper = obj.create_map(); % create feature map using centers and kernel
       mapped_data = transpose(obj.mapper.transform(data)); % compute kernel matrix
       weights = (transpose(mapped_data)*mapped_data + ...
                  obj.noise^2*eye(obj.ncent))\(transpose(mapped_data)*transpose(obs));
