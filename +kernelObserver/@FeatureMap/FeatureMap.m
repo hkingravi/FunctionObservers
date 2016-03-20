@@ -83,16 +83,40 @@ classdef FeatureMap < handle
       %  Map data from input domain to feature space. 
       %
       %  Inputs:
-      %    data  - dim_in x nsamp data matrix
+      %    data - dim_in x nsamp data matrix
       %
       %  Outputs:
-      %    -none
+      %    mapped_data - dim_out x nsamp mapped data matrix
       if strcmp(obj.model_type, 'RBFNetwork')
         mapped_data = kernelObserver.generic_kernel(obj.basis,...
                                                     data, obj.mapper);
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
       end       
     end    
+
+    function [map_deriv] = get_deriv(obj, data)
+      %  Get derivative of feature map with respect to 
+      %  parameters of the feature map. This will return a 
+      %  multidimensional array of parameter derivative 
+      %  matrices, with a list of strings indicating which 
+      %  index corresponds to which derivative. 
+      %
+      %  Inputs:
+      %    data - dim_in x nsamp data matrix
+      %
+      %  Outputs:
+      %    param_mats - dim_out x nsamp x nparam parameter derivatives matrix
+      %    param_names - 1 x nparam parameter derivatives names
+      if strcmp(obj.model_type, 'RBFNetwork')
+        % compute matrices associated to derivative 
+        mapped_data = kernelObserver.generic_kernel(obj.basis,...
+                                                    data, obj.mapper);
+        map_deriv = mapped_data.*kernelObserver.dist_mat(obj.basis,...
+                                                         data);             
+      elseif strcmp(obj.model_type, 'RandomKitchenSinks')
+        % stub
+      end       
+    end        
     
     function mval = get(obj,mfield)
       % Get a requested member variable.

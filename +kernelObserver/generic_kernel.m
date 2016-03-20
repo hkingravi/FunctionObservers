@@ -56,8 +56,7 @@ elseif strcmpi(k_func,'spectral')
     dx = sum((x'*curr_bandwidth)'.*x,1);
     dy = sum((y'*curr_bandwidth)'.*y,1);
     val = repmat(dx',1,length(dy)) + repmat(dy,length(dx),1) - 2*d;    
-    curr_K = exp(-val);
-            
+    curr_K = exp(-val);            
     K = K + curr_K; 
   end
     
