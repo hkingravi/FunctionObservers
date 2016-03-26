@@ -40,15 +40,15 @@ classdef RBFNetwork < handle
   % class properties   
   properties (Access = public)    
     % some of these values are asked by the user in the constructor
-    k_obj      = [];        % kernel object, empty at initialization
-    noise      = 0.1;       % current noise parameter
-    ncent      = []; 
     warnings   = 'on';
-    debug_mode = 'off';     
+    debug_mode = 'on';   
   end
     
   % hidden variables 
-  properties (Access = protected)    
+  properties (Access = protected)
+    k_obj               = [];   % kernel object, empty at initialization
+    noise               = 0.1;  % current noise parameter
+    ncent               = [];      
     k_params            = [];
     noise_params        = [];
     centers             = [];   % centers for RBF network; dim x ncent
@@ -76,12 +76,17 @@ classdef RBFNetwork < handle
       %    optimizer  - (optional) struct used for optimizing hyperparameters:
       %                 must have fields - method -{'none', 'cv', 'likelihood'}
       %                                  - nfolds - number of folds for cv
+      %                                  - options parameters for minFunc
+      %                                    for likelihood option
+      %                                  - solver = {'primal', 'dual'} 
+      %                                    for likelihood option
       %
       %  Outputs:
       %    -none
-      try 
       % nesting structure to set new values 
       if nargin >=3
+        addpath('../../minFunc/minFunc/')
+        
         % parse centers
         if ~isnumeric(centers_in)
           exception = MException('VerifyInput:IncorrectType', ...
@@ -104,7 +109,8 @@ classdef RBFNetwork < handle
           
           if nargin >=5
             if ~strcmp(optimizer.method, 'none') && ...
-                ~strcmp(optimizer.method, 'cv')
+                ~strcmp(optimizer.method, 'cv') && ...
+                ~strcmp(optimizer.method, 'likelihood')
               exception = MException('VerifyInput:OutOfBounds', ...
                                     ' incorrect choice of optimizer');
               throw(exception);
@@ -143,16 +149,10 @@ classdef RBFNetwork < handle
         
       end
 
-      catch ME
-        disp([ME.message])  
-        err = MException('VerifyInput:OutOfBounds', ...
-                         'Exiting due to incorrect inputs.');
-        throw(err);
-      end      
     end  
           
     function fit(obj,data, obs)
-      %  Given new data (possibly in batch form), update the weight vector
+      %  Given new input data and observations , update the weight vector
       %  in batch form (i.e. using the normal equations).
       %
       %  Inputs:
@@ -207,7 +207,48 @@ classdef RBFNetwork < handle
         obj.weights = weights_out;
         if strcmp(obj.debug_mode, 'on')
           disp(['Final kernel params: ' num2str(obj.k_obj.k_params) ...
-            ', noise params: ' num2str(obj.noise)])
+                ', noise params: ' num2str(obj.noise)])
+        end
+      elseif strcmp(obj.optimizer.method, 'likelihood')
+        % set up minFunc's parameters
+        params = [log(obj.k_obj.k_params); log(obj.noise)];
+        
+        % parse options
+        if ~isfield(obj.optimizer, 'useMex')
+          options.useMex = 0;
+        else          
+          options.useMex = obj.optimizer.useMex;
+        end  
+        if ~isfield(obj.optimizer, 'Display')
+          obj.optimizer.Display = 'off';
+          options.Display = 'off';
+        else
+          options.Display = obj.optimizer.Display;
+        end  
+        if ~isfield(obj.optimizer, 'solver')
+          obj.optimizer.solver = 'primal';        
+        end  
+        
+        if ~strcmp(obj.optimizer.solver, 'primal') && ...
+           ~strcmp(obj.optimizer.solver, 'dual')
+         disp('Incorrect choice for optimizer.solver: resorting to primal')
+         obj.optimizer.solver = 'primal';
+        end
+        
+        options.MaxIter = 350;      
+        disp(num2str(params))
+        opt_params = minFunc(@obj.negloglik, params, options, data, obs);
+        if strcmp(obj.debug_mode, 'on')
+          fprintf('band = %.4f, noise = %.4f\n', exp(opt_params(1)),...
+                                                 exp(opt_params(2)));
+        end
+        obj.k_obj.k_params = exp(opt_params(1));
+        obj.noise = exp(opt_params(2));
+        [weights_out, ~] = obj.fit_current(data, obs);
+        obj.weights = weights_out;
+        if strcmp(obj.debug_mode, 'on')
+          disp(['Final kernel params: ' num2str(obj.k_obj.k_params) ...
+                ', noise params: ' num2str(obj.noise)])
         end
       end
       
@@ -253,15 +294,7 @@ classdef RBFNetwork < handle
       %
       %  Outputs:
       %    K   - nsamp x ncent kernel matrix 
-      try        
-        K = obj.mapper.transform(data); 
-                
-      catch ME
-        disp([ME.message '!'])
-        err = MException('VerifyInput:OutOfBounds', ...
-          'Exiting due to irrecoverable error.');
-        throw(err);
-      end
+      K = obj.mapper.transform(data);
     end    
         
     function [f, K] = predict(obj, data_test, weights_in)
@@ -273,29 +306,140 @@ classdef RBFNetwork < handle
       %
       %  Outputs:
       %    -none 
-      try  
-        K = obj.mapper.transform(data_test);
-        if nargin > 2
-          f = transpose(weights_in)*K;
-        else
-          f = transpose(obj.weights)*K;
-        end
-                
-      catch ME
-        disp([ME.message '!'])
-        err = MException('VerifyInput:OutOfBounds', ...
-          'Exiting due to irrecoverable error.');
-        throw(err);
+      K = obj.mapper.transform(data_test);
+      if nargin > 2
+        f = transpose(weights_in)*K;
+      else
+        f = transpose(obj.weights)*K;
       end
     end    
     
+    function [lik_val, param_deriv] = negloglik(obj, param_vec, data, obs)
+      %  Given new input data and observations, compute the negative
+      %  log-likelihood of the data, and return derivatives with respect to
+      %  param_vec. Note that the input must be the variables in negative
+      %  log form, to avoid them going negative. 
+      %
+      %  Inputs:
+      %    param_vec - 2 x 1 parameter vector: [log(bandwidth); 
+      %                                         log(noise)]      
+      %    data  - dim x nsamp data matrix, passed in columnwise
+      %    obs   - 1 x nsamp observation matrix, passed in columnwise
+      %
+      %  Outputs:
+      %    lik_val - value for negative log likelihood. 
+      %    param_vec - 2 x 1 parameter vector derivative: [bandwidth; noise]
+      param_vec = exp(param_vec);
+      obj.k_obj.k_params = param_vec(1);
+      obj.noise = param_vec(2);
+      curr_mapper = obj.create_map();
+      
+      if strcmp(obj.debug_mode, 'on')
+          disp(['Current kernel params: ' num2str(obj.k_obj.k_params) ...
+                ', noise params: ' num2str(obj.noise)])
+      end
+      
+      % precompute useful constants and matrices
+      nsamp = size(data, 2);      
+      m_data = curr_mapper.transform(data);
+      m_data_deriv = curr_mapper.get_deriv(data);      
+            
+      if strcmp(obj.optimizer.solver, 'dual')
+        Amat = obj.noise^2*eye(nsamp) + transpose(m_data)*m_data; 
+        Amat_deriv_band = transpose(m_data_deriv)*m_data + ...
+                          transpose(m_data)*m_data_deriv;
+        Amat_deriv_noise = 2*obj.noise^2*eye(nsamp);
+        Amat_obs = Amat\transpose(obs);
+        
+        L = chol(Amat);
+        logdetAmat = 2*sum(log(diag(L)));
+
+        % compute negative log-likelihood
+        lik_T1 = nsamp*log(2*pi);
+        lik_T2 = logdetAmat;
+        lik_val = 0.5*(lik_T1 + lik_T2 + obs*(Amat_obs));
+        
+        % compute derivatives
+        band_deriv_T1 = trace(Amat\Amat_deriv_band);
+        band_deriv_T2 = -obs*((Amat\Amat_deriv_band)*Amat_obs);
+        band_deriv = 0.5*(band_deriv_T1 + band_deriv_T2);
+        
+        noise_deriv_T1 = trace(Amat\Amat_deriv_noise);
+        noise_deriv_T2 = -obs*(Amat\Amat_obs);
+        noise_deriv = 0.5*(noise_deriv_T1 + noise_deriv_T2);
+        
+      else
+        Amat = eye(obj.ncent) + obj.ncent/(obj.ncent*(obj.noise^2))*m_data*transpose(m_data);
+        m_data_p = Amat\m_data;
+        m_data_d = Amat\m_data_deriv;
+        Amat_deriv_band = obj.ncent/(obj.ncent*(obj.noise^2))*(m_data_deriv*transpose(m_data) + ...
+          m_data*transpose(m_data_deriv));
+        Amat_deriv_noise = -(2*obj.ncent)/(obj.noise^3*obj.ncent)*m_data*transpose(m_data);
+        
+        PhiMat = obj.ncent/(obj.ncent)*transpose(m_data)*m_data_p;
+        m_data_dAmat = Amat\Amat_deriv_band;
+        
+        % compute negative log-likelihood
+        L = chol(Amat);
+        logdetAmat = 2*sum(log(diag(L)));
+        
+        lik_T1 = nsamp*log(2*pi);
+        lik_T2 = nsamp*log(obj.noise^2) + logdetAmat; 
+        T3_mat = 1/(obj.noise^2)*eye(nsamp) -...
+          obj.ncent/(obj.noise^4*obj.ncent)*transpose(m_data)*m_data_p;
+        lik_val = 0.5*(lik_T1 + lik_T2 + obs*T3_mat*transpose(obs));
+        
+        % term 1 w.r.t. bandwidth (eq.s {} in derivation)
+        T1_band = 0.5*(trace(Amat\Amat_deriv_band));
+        
+        % term 2 w.r.t. bandwidth (eq.s {} in derivation)
+        T2_band_B = (obj.ncent/obj.ncent)*transpose(m_data_deriv)*m_data_p;
+        T2_band_Bp1 = (obj.ncent/obj.ncent)*m_data_d;
+        T2_band_Bp2 = m_data_dAmat*m_data_p;
+        T2_band_Bp = transpose(m_data)*(T2_band_Bp2 - T2_band_Bp1);
+        T2_band = -1/(2*obj.noise^4)*obs*(T2_band_B + T2_band_Bp)*transpose(obs);
+        band_deriv = T1_band + T2_band;
+        
+        % term 1 w.r.t. noise (eq.s {} in derivation)
+        T1_noise = (nsamp/obj.noise) + ...
+          0.5*trace(Amat\Amat_deriv_noise);
+        T2_noise = -0.5*obs*((2/obj.noise^3)*eye(nsamp) + ...
+          (2/obj.noise^7)*PhiMat*PhiMat - ...
+          (4/obj.noise^5)*PhiMat)*transpose(obs);
+        noise_deriv = T1_noise + T2_noise;
+      end
+      
+      if strcmp(obj.optimizer.Display, 'on')
+          disp(['Negative log-likelihood: ' num2str(lik_val) ...
+                ', Kernel derivative params: band: ' num2str(band_deriv) ...
+                ', noise: ' num2str(noise_deriv)])
+      end
+      
+      param_deriv = [band_deriv; noise_deriv];
+    end  
+    
     function [mapper] = create_map(obj)
+      %  Given the current kernel object and basis centers, construct a
+      %  FeatureMap object and store it as the internal variable 'mapper'.
+      %
+      %  Inputs:
+      %    -none
+      %
+      %  Outputs:
+      %    -none       
       mapper = kernelObserver.FeatureMap('RBFNetwork');
       map_struct.centers = obj.centers; map_struct.kernel_obj = obj.k_obj;
       mapper.fit(map_struct);
     end  
     
     function params = get_params(obj)
+      %  Return the kernel and observation noise parameters as one vector.
+      %
+      %  Inputs:
+      %    -none
+      %
+      %  Outputs:
+      %    -params - [kernel_parameters, noise]
       params = obj.params_final;
     end  
     
@@ -309,6 +453,10 @@ classdef RBFNetwork < handle
           mval = obj.weights;
         case {'nparams'}
           mval = obj.nparams;
+        case {'k_obj'}
+          mval = obj.k_obj;
+        case {'noise'}
+          mval = obj.noise;          
         otherwise          
            disp('wrong variable name')
       end      

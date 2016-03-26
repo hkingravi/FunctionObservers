@@ -40,39 +40,63 @@ load KRR_test
 data = x;
 obs = y_n;
 
-% generate network 
+% generate network: try different initializations of network
 centers = -5:0.6:5;
 ncent = length(centers);
 k_type = 'gaussian';
-bandwidth = [0.8, 1]; 
-batch_noise = [0.1, 2];
-optimizer = struct('method', 'none');
-rbfn = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
-                                 batch_noise, optimizer);
+bandwidth = 0.1; 
+batch_noise = 0.01;
+optimizer = struct('method', 'likelihood', 'solver', 'dual', ...
+                   'Display', 'on');
+rbfn_large = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
+                                       batch_noise, optimizer);
 
 tic
-rbfn.fit(data, obs); % train in batch 
+rbfn_large.fit(data, obs); % train in batch 
 batch_estimate_time = toc;
 
 
-pred_data = rbfn.predict(data);
-K = rbfn.transform(data);
+pred_data_small = rbfn_large.predict(data);
+K_small = rbfn_large.transform(data);
+disp(['Training time for batch: ' num2str(batch_estimate_time)])
+
+bandwidth = 1.5; 
+batch_noise = 1;
+rbfn_large = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
+                                 batch_noise, optimizer);
+
+tic
+rbfn_large.fit(data, obs); % train in batch 
+batch_estimate_time = toc;
+
+
+pred_data_large = rbfn_large.predict(data);
+K_large = rbfn_large.transform(data);
 disp(['Training time for batch: ' num2str(batch_estimate_time)])
 
 % plot to see estimates 
 figure(1);
-imagesc(K)
+imagesc(K_small)
 ylabel('Centers')
 xlabel('Data')
-title('Kernel Matrix')
-
+title('Kernel Matrix (small values for init)')
 figure(2);
+imagesc(K_large)
+ylabel('Centers')
+xlabel('Data')
+title('Kernel Matrix (large values for init)')
+
+
+figure(3);
 plot(data, obs, 'ro', 'MarkerSize', f_marksize);
 hold on; 
-plot(data, pred_data, 'g', 'LineWidth', f_lwidth);
+plot(data, pred_data_small, 'g', 'LineWidth', f_lwidth);
+hold on; 
+plot(data, pred_data_large, 'b', 'LineWidth', f_lwidth);
 hold on; 
 plot(centers, zeros(1, ncent), 'cd', 'MarkerSize',c_marksize)
-h_legend = legend('observations','estimate','centers');
+h_legend = legend('observations','estimate (small)', 'estimate (large)', ...
+                  'centers');
 set(h_legend,'FontSize',20);  
 
 % save data for unit testing if necessary

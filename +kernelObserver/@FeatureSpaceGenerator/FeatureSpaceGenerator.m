@@ -27,7 +27,12 @@
 classdef FeatureSpaceGenerator < handle 
   % class properties   
   properties (Access = public)        
-    kernel_model = [];
+    %kernel_model = [];
+    centers_est = [];
+    k_type = [];
+    bandwidth_init = [];
+    noise_init = [];
+    optimizer = []; 
   end
     
   % hidden variables 
@@ -37,7 +42,8 @@ classdef FeatureSpaceGenerator < handle
   
   % class methods 
   methods    
-    function obj = FeatureSpaceGenerator(kernel_model)
+    function obj = FeatureSpaceGenerator(centers_est, k_type, bandwidth_init, ...
+                                         noise_init, optimizer)
       %  Constructor for FeatureSpaceGenerator.
       %
       %  Inputs:
@@ -46,8 +52,12 @@ classdef FeatureSpaceGenerator < handle
       %
       %  Outputs:
       %    -none 
-      obj.kernel_model = kernel_model;
-      
+      %obj.kernel_model = kernel_model;
+      obj.centers_est = centers_est;
+      obj.k_type = k_type;
+      obj.bandwidth_init = bandwidth_init;
+      obj.noise_init = noise_init;
+      obj.optimizer = optimizer;
     end  
                 
     function [params] = fit(obj, data, obs)
@@ -70,12 +80,18 @@ classdef FeatureSpaceGenerator < handle
           'Exiting due to irrecoverable error.');
         throw(err);        
       end
-      params = zeros(obj.kernel_model.get('nparams'), nsteps);
+      %params = zeros(obj.kernel_model.get('nparams'), nsteps);
+      params = zeros(2, nsteps);
            
       % iterate through data and apply learner
-      for i=1:nsteps        
-        obj.kernel_model.fit(data(:, :, i), obs(:, :, i));
-        params(:, i) = obj.kernel_model.get_params();
+      for i=1:nsteps  
+        disp(['Current step in time series: ' num2str(i)])
+        kernel_model = kernelObserver.RBFNetwork(obj.centers_est, obj.k_type, ...
+                                                 obj.bandwidth_init, ...
+                                                 obj.noise_init, obj.optimizer);
+        kernel_model.debug_mode = 'on';
+        kernel_model.fit(data(:, :, i), obs(:, :, i));
+        params(:, i) = kernel_model.get_params();
       end      
     end
     % end methods

@@ -33,7 +33,7 @@
 %  Modified: 	2016/03/14
 %
 %============================= rbf_kernel =================================
-function [v, val] =  rbf_kernel(x, y, k_func, bandwidth)
+function [v, deriv] =  rbf_kernel(x, y, k_func, bandwidth)
 
 % compute distances of points to each other
 if(length(bandwidth) ~= 1) % scalar bandwidth
@@ -49,8 +49,15 @@ if strcmpi(k_func,'laplacian')
   v = exp(-val./(bandwidth));
 elseif strcmpi(k_func,'cauchy')
   v = 1./(1 + val./bandwidth);
-else % in this case, use Gaussian
+elseif strcmpi(k_func,'gaussian')
   v = exp(-val./(2*bandwidth^2));
+elseif strcmpi(k_func,'exponential')
+  v = exp(-val./(bandwidth));  
 end
+
+if nargout > 1
+  % in this case, return a derivative
+  
+end  
 
 end
