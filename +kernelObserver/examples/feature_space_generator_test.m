@@ -43,14 +43,17 @@ est_function_dim = 50;
 centers_est = linspace(0, 2*pi, est_function_dim);
 nbands = 5; 
 nnoise = 5;
-bandwidth_init = linspace(0.5, 2, nbands) ;
-noise_init = linspace(0.1, 1, nnoise);
-optimizer = struct('method', 'cv', 'nfolds', 5);
-model = kernelObserver.RBFNetwork(centers_est, k_type, bandwidth_init, ...
-                                  noise_init, optimizer); 
+%bandwidth_init = linspace(0.5, 2, nbands) ;
+%noise_init = linspace(0.1, 1, nnoise);
+bandwidth_init = 1;
+noise_init = 0.1; 
+optimizer = struct('method', 'likelihood', 'solver', 'dual',...
+                   'Display', 'excessive');
+%model = kernelObserver.RBFNetwork(); 
 
 %% now create FeatureSpaceGenerator object and infer parameters
-fsg = kernelObserver.FeatureSpaceGenerator(model);
+fsg = kernelObserver.FeatureSpaceGenerator(centers_est, k_type, bandwidth_init, ...
+                                           noise_init, optimizer);
 tic
 params = fsg.fit(orig_func_data, orig_func_obs);
 t_end = toc; 

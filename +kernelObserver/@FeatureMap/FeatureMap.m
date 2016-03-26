@@ -111,8 +111,8 @@ classdef FeatureMap < handle
         % compute matrices associated to derivative 
         mapped_data = kernelObserver.generic_kernel(obj.basis,...
                                                     data, obj.mapper);
-        map_deriv = mapped_data.*kernelObserver.dist_mat(obj.basis,...
-                                                         data);             
+        map_deriv = (1/(obj.mapper.k_params^3))*...
+                    mapped_data.*kernelObserver.dist_mat(obj.basis, data);             
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
         % stub
       end       
