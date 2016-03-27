@@ -1,17 +1,7 @@
 # Function Observers
 This is a MATLAB toolbox for code pertaining to function observers.
 The prototypical example of a functional observer is the
-kernel observer and controller paradigm, early versions of which appeared
-as
-* Hassan A. Kingravi, Harshal Maske, and Girish Chowdhary.
-  [Kernel Observers: Systems-Theoretic Modeling and Inference of Spatiotemporally Varying Processes](http://hassanakingravi.com/papers/2015/NIPS_2015.pdf),
-   NIPS Nonparametric Methods for Large Scale Representation Learning (2015).
-* Hassan A. Kingravi, Harshal Maske, and Girish Chowdhary.
-  [A Systems-Theoretic Approach for Data-Driven Modeling and Control
-    of Spatiotemporally Evolving Processes](http://hassanakingravi.com/papers/2015/CDC_2015.pdf),
-   IEEE Conference on Decision and Control (2015).
-
-The primary idea behind these methods is the modeling and control of
+kernel observer and controller paradigm. The primary goal of these methods is the modeling and control of
 spatiotemporally varying processes (i.e. stochastic phenomena that vary
 over space AND time). Practical applications of these types of methods
 include ocean temperature modeling and monitoring, control of diffusive
@@ -71,3 +61,14 @@ Users require
 # Future work
 Future work will incorporate more general learning architectures for the modeling
 portion, including more general Bayesian methods, and deep neural networks.
+
+
+# References
+Early versions of this work appeared as
+* Hassan A. Kingravi, Harshal Maske, and Girish Chowdhary.
+  [Kernel Observers: Systems-Theoretic Modeling and Inference of Spatiotemporally Varying Processes](http://hassanakingravi.com/papers/2015/NIPS_2015.pdf),
+   NIPS Nonparametric Methods for Large Scale Representation Learning (2015).
+* Hassan A. Kingravi, Harshal Maske, and Girish Chowdhary.
+  [A Systems-Theoretic Approach for Data-Driven Modeling and Control
+    of Spatiotemporally Evolving Processes](http://hassanakingravi.com/papers/2015/CDC_2015.pdf),
+   IEEE Conference on Decision and Control (2015).
