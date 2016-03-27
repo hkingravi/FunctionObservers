@@ -10,7 +10,7 @@ patrolling enemy, disease propagation in urban population centers, and so on.
 In all of these scenarios, there are some commonalities:
 
 1. *Modeling*: building a predictive model of the process in play. The following
-   image shows and example of inferring mean ocean surface temperature from AVVHR
+   image shows an example of inferring mean ocean surface temperature from AVVHR
    satellite data, at a given day: the full algorithm would build a model of how
    these temperatures will change over time.
 <p align="center">
