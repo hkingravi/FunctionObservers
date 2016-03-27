@@ -4,15 +4,13 @@ The prototypical example of a functional observer is the
 kernel observer and controller paradigm, early versions of which appeared
 as
 * Hassan A. Kingravi, Harshal Maske, and Girish Chowdhary.
-  *[Kernel Observers: Systems-Theoretic Modeling and Inference of
-   Spatiotemporally Varying Processes
-   (http://hassanakingravi.com/papers/2015/NIPS_2015.pdf)]*,
-   NIPS Nonparametric Methods for Large Scale Representation Learning (2015)
+  [Kernel Observers: Systems-Theoretic Modeling and Inference of Spatiotemporally Varying Processes](http://hassanakingravi.com/papers/2015/NIPS_2015.pdf),
+   NIPS Nonparametric Methods for Large Scale Representation Learning (2015).
 * Hassan A. Kingravi, Harshal Maske, and Girish Chowdhary.
-  *[A Systems-Theoretic Approach for Data-Driven Modeling and Control
-    of Spatiotemporally Evolving Processes
-   (http://hassanakingravi.com/papers/2015/CDC_2015.pdf)]*,
-   NIPS Nonparametric Methods for Large Scale Representation Learning (2015)
+  [A Systems-Theoretic Approach for Data-Driven Modeling and Control
+    of Spatiotemporally Evolving Processes](http://hassanakingravi.com/papers/2015/CDC_2015.pdf),
+   IEEE Conference on Decision and Control (2015).
+
 The primary idea behind these methods is the modeling and control of
 spatiotemporally varying processes (i.e. stochastic phenomena that vary
 over space AND time). Practical applications of these types of methods
@@ -24,26 +22,26 @@ In all of these scenarios, there are some commonalities:
    image shows and example of inferring mean ocean surface temperature from AVVHR
    satellite data, at a given day: the full algorithm would build a model of how
    these temperatures will change over time.
-<div style="text-align:center">
+<p align="center">
 <img src ="http://hassanakingravi.com/Images/papers/inference_example.png" width=400>
-</div>
+</p>
 
 2. *Monitoring*: estimating the latent state of the process from
     a set of measurements, gathered from *sensors*. The image below demonstrates
     the tracking of an abstract process using a series of measurements from fixed
     sensor locations.
-<div style="text-align:center">
+<p align="center">
 <img src ="http://hassanakingravi.com/Images/papers/monitoring_example.png" width=300>
-</div>
+</p>
 
 3. *Control/Exploitation*: either affecting the future state of the process
     directly, or using the current state of the process to make a decision.
     The image below shows an example of driving a system with an initial temperature
     distribution diffusing according to the heat equation to a final, fixed temperature
     distribution.
-<div style="text-align:center">
+<p align="center">
 <img src ="http://hassanakingravi.com/Images/papers/controlled_pde_heat.jpg" width=250>
-</div>
+</p>
 
 The geostatistics community has done a great deal of work in the modeling aspects
 of this area. Our contributions lie in utilizing ideas from reproducing kernel
