@@ -85,7 +85,7 @@ classdef RBFNetwork < handle
       %    -none
       % nesting structure to set new values 
       if nargin >=3
-        addpath('../../minFunc/minFunc/')
+        
         
         % parse centers
         if ~isnumeric(centers_in)

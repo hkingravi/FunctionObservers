@@ -49,9 +49,9 @@ classdef kernelObj < handle
         throw(exception);
       elseif ~strcmp(k_name, 'gaussian') && ~strcmp(k_name, 'laplacian')...
                                          && ~strcmp(k_name, 'polynomial')...
-                                         && ~strcmp(k_name, 'exponential')
+                                         && ~strcmp(k_name, 'sqexp')
         exception = MException('VerifyInput:IncorrectInput', ...
-          'Kernel name must be gaussian, laplacian, exponential, or polynomial');
+          'Kernel name must be gaussian, laplacian, sqexp, or polynomial');
         throw(exception);
       end
       if ~isnumeric(k_params)

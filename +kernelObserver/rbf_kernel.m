@@ -33,7 +33,7 @@
 %  Modified: 	2016/03/14
 %
 %============================= rbf_kernel =================================
-function [v, deriv] =  rbf_kernel(x, y, k_func, bandwidth)
+function [Kmat, deriv_cell] =  rbf_kernel(x, y, k_func, bandwidth)
 
 % compute distances of points to each other
 if(length(bandwidth) ~= 1) % scalar bandwidth
@@ -42,22 +42,26 @@ if(length(bandwidth) ~= 1) % scalar bandwidth
   bandwidth = bandwidth(1, 1);
 end
 
-val = kernelObserver.dist_mat(x, y);
+Dmat = kernelObserver.dist_mat(x, y);
 
 if strcmpi(k_func,'laplacian')
-  val = sqrt(val);
-  v = exp(-val./(bandwidth));
+  Dmat = sqrt(Dmat);
+  Kmat = exp(-Dmat./(bandwidth));
 elseif strcmpi(k_func,'cauchy')
-  v = 1./(1 + val./bandwidth);
+  Kmat = 1./(1 + Dmat./bandwidth);
 elseif strcmpi(k_func,'gaussian')
-  v = exp(-val./(2*bandwidth^2));
-elseif strcmpi(k_func,'exponential')
-  v = exp(-val./(bandwidth));  
+  Kmat = exp(-Dmat./(2*bandwidth^2));  
 end
 
 if nargout > 1
   % in this case, return a derivative
-  
+  nderivs = 1;
+  deriv_cell = cell(1, nderivs);
+  if strcmpi(k_func,'laplacian')
+  elseif strcmpi(k_func,'cauchy')
+  elseif strcmpi(k_func,'gaussian')    
+    deriv_cell{1} = (1/(bandwidth^3))*Kmat.*Dmat;             
+  end
 end  
 
 end

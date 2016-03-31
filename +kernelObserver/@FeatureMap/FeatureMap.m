@@ -109,10 +109,8 @@ classdef FeatureMap < handle
       %    param_names - 1 x nparam parameter derivatives names
       if strcmp(obj.model_type, 'RBFNetwork')
         % compute matrices associated to derivative 
-        mapped_data = kernelObserver.generic_kernel(obj.basis,...
-                                                    data, obj.mapper);
-        map_deriv = (1/(obj.mapper.k_params^3))*...
-                    mapped_data.*kernelObserver.dist_mat(obj.basis, data);             
+        [~, map_deriv] = kernelObserver.generic_kernel(obj.basis,...
+                                                                data, obj.mapper);
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
         % stub
       end       
