@@ -24,14 +24,15 @@
 classdef FeatureMap < handle 
   % class properties   
   properties (Access = public)        
-    
   end
     
   % hidden variables 
   properties (Access = protected)    
+    seed = [];    
     model_type = [];
     basis = [];
     mapper = [];
+    nbases = [];
   end
   
   % class methods 
@@ -50,8 +51,7 @@ classdef FeatureMap < handle
         exception = MException('VerifyInput:OutOfBounds', ...
                                ' incorrect choice of optimizer');
         throw(exception);
-      end
-      
+      end      
       obj.model_type = model_type; 
     end  
                 
@@ -73,8 +73,26 @@ classdef FeatureMap < handle
         else
           obj.basis = map_struct.centers;
           obj.mapper = map_struct.kernel_obj; 
+          obj.nbases = size(map_struct.centers, 2);
         end
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
+        if ~isfield(map_struct, 'nbases') || ...
+           ~isfield(map_struct, 'ndim') || ...
+           ~isfield(map_struct, 'kernel_obj') || ...
+           ~isfield(map_struct, 'seed')         
+          exception = MException('VerifyInput:OutOfBounds', ...
+            ' map_struct missing fields nbases or kernel_obj');
+          throw(exception);
+        else
+          obj.seed = map_struct.seed;
+          s = RandStream('mt19937ar','Seed', obj.seed);
+          RandStream.setGlobalStream(s);
+          
+          bandwidth = map_struct.kernel_obj.k_params(1);
+          obj.nbases = map_struct.nbases;
+          obj.basis = (1/bandwidth)*randn(obj.nbases, map_struct.ndim);
+          obj.mapper = map_struct.kernel_obj;          
+        end
       end
        
     end
@@ -91,6 +109,8 @@ classdef FeatureMap < handle
         mapped_data = kernelObserver.generic_kernel(obj.basis,...
                                                     data, obj.mapper);
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
+        data_trans = obj.basis*data;
+        mapped_data = [sin(data_trans); cos(data_trans)]/sqrt(obj.nbases);         
       end       
     end    
 
@@ -110,9 +130,14 @@ classdef FeatureMap < handle
       if strcmp(obj.model_type, 'RBFNetwork')
         % compute matrices associated to derivative 
         [~, map_deriv] = kernelObserver.generic_kernel(obj.basis,...
-                                                                data, obj.mapper);
+                                                       data, obj.mapper);
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
-        % stub
+        data_trans = obj.basis*data;
+        data_comp = (1/obj.mapper.k_params(1)).*[data_trans; data_trans];
+        map_deriv = {};
+        map_deriv_curr = [-cos(data_trans); 
+                          sin(data_trans)]/sqrt(obj.nbases);         
+        map_deriv{1} = map_deriv_curr.*data_comp;
       end       
     end        
     

@@ -48,9 +48,10 @@ end
 % compute kernel map, and then kernel matrix 
 nsamp = size(data, 2);
 dim = length(param_vec);
-k_params = param_vec(1:dim-1); 
+k_params = exp(param_vec(1:dim-1)); 
 noise = exp(2*param_vec(dim));  % do this to avoid negative parameter scaling issues
 k_obj = kernelObserver.kernelObj(k_type, k_params);
+jitter = 1e-7;
 
 mapper = kernelObserver.FeatureMap(mapper_type);
 map_struct.kernel_obj = k_obj;
@@ -62,7 +63,12 @@ if strcmp(solver_type, 'dual')
   K = transpose(m_data)*m_data;
 
   % missing bits about what happens for small noise parameters
-  L = chol(K/noise + eye(nsamp)); sl = noise;
+  if noise < 1e-6
+    L = chol(K + (noise + jitter)*eye(nsamp)); sl = 1;
+  else
+    L = chol(K/noise + eye(nsamp)); sl = noise;
+  end  
+  
   alpha = kernelObserver.solve_chol(L, obs')/sl;
   Logdet = sum(log(diag(L)));
   Cinv = kernelObserver.solve_chol(L, eye(nsamp))/sl; 
@@ -73,7 +79,12 @@ else
   Kp = m_data*transpose(m_data);
   
   % missing bits about what happens for small noise parameters
-  L = chol(Kp/noise + eye(ncent)); sl = noise; 
+  if noise < 1e-6
+    L = chol(Kp + (noise + jitter)*eye(ncent)); sl = 1;
+  else
+    L = chol(Kp/noise + eye(ncent)); sl = noise; 
+  end  
+  
   Ainv = kernelObserver.solve_chol(L, eye(ncent));
   Cinv = (eye(nsamp) - (transpose(m_data)*Ainv*m_data)/sl)/sl;
   alpha = Cinv*transpose(obs);

@@ -47,7 +47,7 @@ k_type = 'gaussian';
 bandwidth = 0.1; 
 batch_noise = 0.01;
 optimizer = struct('method', 'likelihood', 'solver', 'dual', ...
-                   'Display', 'on');
+                   'Display', 'on', 'DerivativeCheck', 'on');
 rbfn_large = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
                                        batch_noise, optimizer);
 
@@ -60,10 +60,10 @@ pred_data_small = rbfn_large.predict(data);
 K_small = rbfn_large.transform(data);
 disp(['Training time for batch: ' num2str(batch_estimate_time)])
 
-bandwidth = 1.5; 
-batch_noise = 1;
+bandwidth = 2.1; 
+batch_noise = 0.1;
 rbfn_large = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
-                                 batch_noise, optimizer);
+                                       batch_noise, optimizer);
 
 tic
 rbfn_large.fit(data, obs); % train in batch 
@@ -85,7 +85,6 @@ imagesc(K_large)
 ylabel('Centers')
 xlabel('Data')
 title('Kernel Matrix (large values for init)')
-
 
 figure(3);
 plot(data, obs, 'ro', 'MarkerSize', f_marksize);

@@ -51,7 +51,7 @@ current_t = 0;
 final_time = 50;
 num_steps = floor(final_time/dt); 
 
-nsamp = 35;
+nsamp = 500;
 nsamp_plot = length(eval_data); % number of samples for plotting
 data = linspace(0, 2*pi, nsamp); % where the function values are sampled from
 

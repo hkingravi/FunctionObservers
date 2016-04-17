@@ -18,16 +18,16 @@
 %  OUTPUT:
 %               - n x m kernel matrix 
 %
-%============================= rbf_kernel =================================
+%=========================== generic_kernel ===============================
 %
-%  Name:        rbf_kernel.m
+%  Name:        generic_kernel.m
 %
 %  Author:      Hassan A. Kingravi
 %
 %  Created:  	2014/06/03
-%  Modified: 	2014/06/03
+%  Modified: 	2016/04/10
 %
-%============================= rbf_kernel =================================
+%=========================== generic_kernel ===============================
 function [kmat, deriv_cell] =  generic_kernel(x, y, k_obj)
 
 k_func = k_obj.k_name;

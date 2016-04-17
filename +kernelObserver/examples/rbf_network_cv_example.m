@@ -44,8 +44,8 @@ obs = y_n;
 centers = -5:0.6:5;
 ncent = length(centers);
 k_type = 'gaussian';
-bandwidth = linspace(0.1, 10, 30);
-batch_noise = linspace(0.1, 2, 20);
+bandwidth = linspace(0.05, 3, 100);
+batch_noise = linspace(0.05, 2, 100);
 optimizer = struct('method', 'cv', 'nfolds', 5);
 rbfn = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
                                  batch_noise, optimizer);

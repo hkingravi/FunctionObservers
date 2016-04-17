@@ -5,7 +5,7 @@
 % 
 %  Inputs:
 %    L  - Cholesky factorization of A, i.e. A = LL'
-%    B  - linear system to solve, i.e. X = A\B
+%    B  - output for linear system to solve, i.e. X = A\B
 %
 %  Outputs:
 %               -see functions

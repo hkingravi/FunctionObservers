@@ -31,33 +31,44 @@ RandStream.setGlobalStream(s);
 
 %% load time-series data
 generator = 'RBFNetwork';
-scheme = 'smooth2'; % smoothly varying system 
 k_type = 'gaussian';
-
+scheme = 'smooth2'; % smoothly varying system 
 load_file = ['./data/synthetic_time_series_generator_' generator ...
              '_kernel_' k_type '_scheme_' scheme '.mat'];       
 load(load_file)
 
 %% first, create finite-dimensional kernel model (RBFNetwork)
 est_function_dim = 50;
-centers_est = linspace(0, 2*pi, est_function_dim);
+basis = linspace(0, 2*pi, est_function_dim);
 nbands = 5; 
 nnoise = 5;
-%bandwidth_init = linspace(0.5, 2, nbands) ;
-%noise_init = linspace(0.1, 1, nnoise);
-bandwidth_init = 1;
-noise_init = 0.1; 
-optimizer = struct('method', 'likelihood', 'solver', 'dual',...
-                   'Display', 'excessive');
-%model = kernelObserver.RBFNetwork(); 
+bandwidth_init = 0.6;
+noise_init = 0.01; 
+params_init = [bandwidth_init; noise_init];
+param_optimizer = struct('method', 'likelihood', 'solver', 'primal',...
+                         'Display', 'off');
 
 %% now create FeatureSpaceGenerator object and infer parameters
-fsg = kernelObserver.FeatureSpaceGenerator(centers_est, k_type, bandwidth_init, ...
-                                           noise_init, optimizer);
+fsg = kernelObserver.FeatureSpaceGenerator(basis, k_type, bandwidth_init, ...
+                                           noise_init, param_optimizer);
 tic
 params = fsg.fit(orig_func_data, orig_func_obs);
 t_end = toc; 
 disp(['Training time for batch: ' num2str(t_end) ' seconds.'])
 
+
+% visualize parameter stream
+figure(1);
+plot(params(1, :), 'b', 'LineWidth', 1.5)
+xlabel('Time step')
+ylabel('Bandwidth')
+ylim([0.5, 1.5])
+title('Bandwidth parameter over time')
+
+figure(2);
+plot(params(2, :), 'b', 'LineWidth', 1.5)
+xlabel('Time step')
+ylabel('Noise')
+title('Noise parameter over time')
 
 
