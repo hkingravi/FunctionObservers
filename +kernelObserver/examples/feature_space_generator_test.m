@@ -37,25 +37,24 @@ load_file = ['./data/synthetic_time_series_generator_' generator ...
              '_kernel_' k_type '_scheme_' scheme '.mat'];       
 load(load_file)
 
-%% first, create finite-dimensional kernel model (RBFNetwork)
-est_function_dim = 50;
-basis = linspace(0, 2*pi, est_function_dim);
-nbands = 5; 
-nnoise = 5;
-bandwidth_init = 0.6;
-noise_init = 0.01; 
-params_init = [bandwidth_init; noise_init];
-param_optimizer = struct('method', 'likelihood', 'solver', 'primal',...
-                         'Display', 'off');
+%% first, create finite-dimensional kernel model (RandomKitchenSinks)
+nbases = 500;
+ndim = 1; 
+k_type = 'gaussian';
+bandwidth = 1; 
+noise = 0.01;
+optimizer = struct('method', 'likelihood', 'solver', 'dual', ...
+                   'Display', 'on', 'DerivativeCheck', 'off');
+rks = kernelObserver.RandomKitchenSinks(nbases, ndim, k_type, ...
+                                        bandwidth, noise,...
+                                        optimizer);
 
 %% now create FeatureSpaceGenerator object and infer parameters
-fsg = kernelObserver.FeatureSpaceGenerator(basis, k_type, bandwidth_init, ...
-                                           noise_init, param_optimizer);
+fsg = kernelObserver.FeatureSpaceGenerator(rks);
 tic
 params = fsg.fit(orig_func_data, orig_func_obs);
 t_end = toc; 
 disp(['Training time for batch: ' num2str(t_end) ' seconds.'])
-
 
 % visualize parameter stream
 figure(1);

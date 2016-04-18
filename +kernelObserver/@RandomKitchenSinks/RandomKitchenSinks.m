@@ -36,17 +36,18 @@ classdef RandomKitchenSinks < handle
     
   % hidden variables 
   properties (Access = protected)    
-    sigma = 1; 
-    nbases = []; 
-    ndim = [];     
-    noise = 0.1;       % Regularization parameter 
-    seed = 0;          % need better way to set this    
-    sort_mat = 0; 
-    k_obj = [];
-    weights = [];
-    rand_mat = [];     % random matrix for feature map
-    mapper = [];
-    optimizer = [];
+    sigma               = 1; 
+    noise               = 0.1;  % Regularization parameter     
+    nbases              = []; 
+    ndim                = [];
+    nparams             = 2;    % this is fixed for this class        
+    seed                = 0;    % need better way to set this    
+    sort_mat            = 0; 
+    k_obj               = [];
+    weights             = [];
+    rand_mat            = [];   % random matrix for feature map
+    mapper              = [];
+    optimizer           = [];
     params_final        = [];   % used by FeatureSpaceGenerator objects    
   end
   
@@ -251,6 +252,17 @@ classdef RandomKitchenSinks < handle
       mapper.fit(map_struct);
     end      
     
+    function params = get_params(obj)
+      %  Return the kernel and observation noise parameters as one vector.
+      %
+      %  Inputs:
+      %    -none
+      %
+      %  Outputs:
+      %    -params - [kernel_parameters, noise]
+      params = obj.params_final;
+    end      
+    
     function mval = get(obj,mfield)
       % Get a requested member variable.
       %      
@@ -264,7 +276,9 @@ classdef RandomKitchenSinks < handle
         case {'params_final'}
           mval = obj.params_final;                    
         case {'mapper'}
-          mval = obj.mapper;                              
+          mval = obj.mapper;
+        case {'nparams'}
+          mval = obj.nparams;
         otherwise                    
            disp('wrong variable name')
       end      
