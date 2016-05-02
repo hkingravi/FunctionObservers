@@ -34,7 +34,7 @@ c_marksize = 10;
 
 % flags for plotting and saving
 save_unit_test = 0; 
-plot_nll = 1;
+plot_nll = 0;
 
 % load previously existing data 
 load KRR_test 
@@ -42,15 +42,15 @@ data = x;
 obs = y_n;
 
 % generate RKS map
-nbases = 2000;
+nbases = 200;
 ndim = 1; 
 k_type = 'gaussian';
 bandwidth = 1; 
 noise = 0.01;
-optimizer = struct('method', 'likelihood', 'solver', 'dual', ...
+optimizer = struct('method', 'likelihood', 'solver', 'primal', ...
                    'Display', 'on', 'DerivativeCheck', 'off');
 rks = kernelObserver.RandomKitchenSinks(nbases, ndim, k_type, ...
-                                        bandwidth, noise,...
+                                        bandwidth, noise, ...
                                         optimizer);
 
 tic

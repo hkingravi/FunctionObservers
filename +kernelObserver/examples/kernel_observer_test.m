@@ -1,17 +1,17 @@
-%===================== feature_space_generator_test =======================
+%======================== kernel_observer_test ============================
 %  
 %  This code tests the FeatureSpaceGenerator class. 
 %
-%===================== feature_space_generator_test =======================
+%======================== kernel_observer_test ============================
 %
-%  Name:	feature_space_generator_test.m
+%  Name:	kernel_observer_test.m
 %
 %  Author: 	Hassan A. Kingravi
 %
-%  Created:  2016/03/13
-%  Modified: 2016/03/13
+%  Created:  2016/04/21
+%  Modified: 2016/04/21
 %
-%===================== feature_space_generator_test =======================
+%======================== kernel_observer_test ============================
 clc; clear all; clear classes; close all
 
 % add path to kernelObserver folder and data
@@ -37,35 +37,39 @@ load_file = ['./data/synthetic_time_series_generator_' generator ...
              '_kernel_' k_type '_scheme_' scheme '.mat'];       
 load(load_file)
 
+nsamp_ret = 500;  % truncate series for now
+orig_func_data = orig_func_data(:, :, 1:nsamp_ret);
+orig_func_obs = orig_func_obs(:, :, 1:nsamp_ret);
+
 %% first, create finite-dimensional kernel model (RandomKitchenSinks)
-nbases = 500;
+nbases = 300;
 ndim = 1; 
 k_type = 'gaussian';
 bandwidth = 1; 
 noise = 0.01;
 optimizer = struct('method', 'likelihood', 'solver', 'primal', ...
-                   'Display', 'on', 'DerivativeCheck', 'off');
+                   'Display', 'off', 'DerivativeCheck', 'off');
 rks = kernelObserver.RandomKitchenSinks(nbases, ndim, k_type, ...
                                         bandwidth, noise,...
                                         optimizer);
 
-%% now create FeatureSpaceGenerator object and infer parameters
-fsg = kernelObserver.FeatureSpaceGenerator(rks);
+%% now create KernelObserver object and infer parameters
+kobs = kernelObserver.KernelObserver(rks);
 tic
-params = fsg.fit(orig_func_data, orig_func_obs);
+kobs.fit(orig_func_data, orig_func_obs);
+param_stream = kobs.get_param_stream();
 t_end = toc; 
 disp(['Training time for batch: ' num2str(t_end) ' seconds.'])
 
 % visualize parameter stream
 figure(1);
-plot(params(1, :), 'b', 'LineWidth', 1.5)
+plot(param_stream(1, :), 'b', 'LineWidth', 1.5)
 xlabel('Time step')
 ylabel('Bandwidth')
-ylim([0.5, 1.5])
 title('Bandwidth parameter over time')
 
 figure(2);
-plot(params(2, :), 'b', 'LineWidth', 1.5)
+plot(param_stream(2, :), 'b', 'LineWidth', 1.5)
 xlabel('Time step')
 ylabel('Noise')
 title('Noise parameter over time')

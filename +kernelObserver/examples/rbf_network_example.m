@@ -46,8 +46,8 @@ ncent = length(centers);
 k_type = 'gaussian';
 bandwidth = 0.1; 
 batch_noise = 0.01;
-optimizer = struct('method', 'likelihood', 'solver', 'dual', ...
-                   'Display', 'on', 'DerivativeCheck', 'on');
+optimizer = struct('method', 'likelihood', 'solver', 'primal', ...
+                   'Display', 'on');
 rbfn_large = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
                                        batch_noise, optimizer);
 

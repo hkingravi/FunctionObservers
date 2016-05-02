@@ -38,7 +38,8 @@ classdef RandomKitchenSinks < handle
   properties (Access = protected)    
     sigma               = 1; 
     noise               = 0.1;  % Regularization parameter     
-    nbases              = []; 
+    nbases              = [];   % number of actual bases
+    nbases_rks          = [];   % number of RKS bases
     ndim                = [];
     nparams             = 2;    % this is fixed for this class        
     seed                = 0;    % need better way to set this    
@@ -54,19 +55,19 @@ classdef RandomKitchenSinks < handle
   % class methods 
   methods
     
-    function obj = RandomKitchenSinks(nbases, ndim, k_func_in, parameters_in, ...
+    function obj = RandomKitchenSinks(nbases_rks, ndim, k_func_in, parameters_in, ...
                                       noise_in, optimizer_in)
       %  Constructor for RandomKitchenSinks.
       %
       %  Inputs:
-      %    sigma      - parameter for kernel
-      %    nbases      - number of bases: you will generate a map TWICE this
+      %    nbases_rks  - number of bases: you will generate a map TWICE this
       %                 length!
       %    ndim        - dimensionality of data
       %
       %  Outputs:
       %    -none      
-      obj.nbases = nbases;
+      obj.nbases_rks = nbases_rks;
+      obj.nbases = 2*nbases_rks;
       obj.ndim = ndim;
       obj.sigma = parameters_in(1);  % radial kernel parameter
       
@@ -77,7 +78,7 @@ classdef RandomKitchenSinks < handle
       end
           
       obj.k_obj = kernelObserver.kernelObj(k_func_in, parameters_in(1));      
-      obj.rand_mat = randn(obj.nbases, obj.ndim);
+      obj.rand_mat = randn(obj.nbases_rks, obj.ndim);
       
       if nargin > 4
           obj.noise = noise_in; 
@@ -94,13 +95,13 @@ classdef RandomKitchenSinks < handle
       end    
       
       if obj.ndim == 1
-        obj.rand_mat = 1/(obj.sigma)*randn(obj.nbases, obj.ndim);  
+        obj.rand_mat = 1/(obj.sigma)*randn(obj.nbases_rks, obj.ndim);  
         if obj.sort_mat == 1          
           obj.rand_mat = sort(obj.rand_mat);
         end  
       else
         temp = eye(obj.ndim)/(obj.sigma);
-        Mat = randn(obj.nbases, obj.ndim);                 
+        Mat = randn(obj.nbases_rks, obj.ndim);                 
         obj.rand_mat =[];
         for i=1:obj.ndim
             obj.rand_mat = [obj.rand_mat Mat(:,i)*temp(i)];
@@ -158,7 +159,7 @@ classdef RandomKitchenSinks < handle
                                 
         options.MaxIter = 350;      
         opt_params = minFunc(@kernelObserver.negative_log_likelihood_rks, ...
-                             params, options, obj.nbases, obj.ndim, obj.seed,...
+                             params, options, obj.nbases_rks, obj.ndim, obj.seed,...
                              data, obs, obj.k_obj.k_name, 'RandomKitchenSinks', ... 
                              obj.optimizer.solver);
         
@@ -247,21 +248,35 @@ classdef RandomKitchenSinks < handle
       %  Outputs:
       %    -none       
       mapper = kernelObserver.FeatureMap('RandomKitchenSinks');
-      map_struct.nbases = obj.nbases; map_struct.ndim = obj.ndim;
+      map_struct.nbases = obj.nbases_rks; map_struct.ndim = obj.ndim;
       map_struct.seed = obj.seed; map_struct.kernel_obj = obj.k_obj;
       mapper.fit(map_struct);
     end      
     
-    function params = get_params(obj)
+    function params_out = get_params(obj)
       %  Return the kernel and observation noise parameters as one vector.
       %
       %  Inputs:
       %    -none
       %
       %  Outputs:
-      %    -params - [kernel_parameters, noise]
-      params = obj.params_final;
+      %    -params_out - [kernel_parameters, noise]
+      params_out = obj.params_final;
     end      
+    
+    function set_params(obj, params_in)
+      %  Return the kernel and observation noise parameters as one vector.
+      %
+      %  Inputs:
+      %    -params_in - [kernel_parameters, noise]
+      %    
+      %  Outputs:
+      %    -none
+      obj.params_final = params_in; 
+      obj.k_obj.k_params = params_in(1);
+      obj.noise = params_in(2);
+      obj.mapper = obj.create_map(); % create feature map using centers and kernel
+    end          
     
     function mval = get(obj,mfield)
       % Get a requested member variable.
@@ -273,6 +288,10 @@ classdef RandomKitchenSinks < handle
           mval = obj.weights;
         case {'sigma'}
           mval = obj.sigma;          
+        case {'nbases'}
+          mval = obj.nbases;
+        case {'nbases_rks'}
+          mval = obj.nbases_rks;
         case {'params_final'}
           mval = obj.params_final;                    
         case {'mapper'}
@@ -284,11 +303,13 @@ classdef RandomKitchenSinks < handle
       end      
     end  
     
-    function set(obj,mfield,mval)
+    function set(obj, mfield, mval)
       %
       %  Set a requested member variable.
       %      
       switch(mfield)
+        case {'sigma'}
+          obj.sigma = mval;
         case {'noise'}
           obj.noise = mval;
         case {'weights'}
@@ -298,8 +319,7 @@ classdef RandomKitchenSinks < handle
       end    
     
   end
-    
-    
+        
   end
 
 end

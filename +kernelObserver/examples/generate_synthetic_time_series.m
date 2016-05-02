@@ -29,7 +29,6 @@ seed = 20;
 s = RandStream('mt19937ar','Seed',seed);
 RandStream.setGlobalStream(s);
 
-
 %% time-varying data arises from weight set associated to an RBF network
 eval_data = 0:0.005:2*pi; % where the function values are evaluated for plotting purposes 
 orig_function_dim = 10;

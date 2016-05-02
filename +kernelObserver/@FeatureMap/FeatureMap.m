@@ -71,6 +71,14 @@ classdef FeatureMap < handle
                       ' map_struct missing fields centers or kernel_obj');
           throw(exception);
         else
+          if ~isfield(map_struct, 'seed')
+            obj.seed = 0;
+          else
+            obj.seed = map_struct.seed;
+          end  
+          s = RandStream('mt19937ar','Seed', obj.seed);
+          RandStream.setGlobalStream(s);
+          
           obj.basis = map_struct.centers;
           obj.mapper = map_struct.kernel_obj; 
           obj.nbases = size(map_struct.centers, 2);
@@ -90,7 +98,7 @@ classdef FeatureMap < handle
           
           bandwidth = map_struct.kernel_obj.k_params(1);
           obj.nbases = map_struct.nbases;
-          obj.basis = (1/bandwidth)*randn(obj.nbases, map_struct.ndim);
+          obj.basis = (1/bandwidth)*randn(map_struct.ndim, obj.nbases);
           obj.mapper = map_struct.kernel_obj;          
         end
       end
@@ -109,7 +117,7 @@ classdef FeatureMap < handle
         mapped_data = kernelObserver.generic_kernel(obj.basis,...
                                                     data, obj.mapper);
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
-        data_trans = obj.basis*data;
+        data_trans = transpose(obj.basis)*data;
         mapped_data = [sin(data_trans); cos(data_trans)]/sqrt(obj.nbases);         
       end       
     end    
@@ -151,6 +159,10 @@ classdef FeatureMap < handle
           mval = obj.basis;
         case {'mapper'}
           mval = obj.mapper;
+        case {'model_type'}
+          mval = obj.model_type;          
+        case {'seed'}
+          mval = obj.seed;                    
         otherwise
           disp('wrong variable name')
       end
