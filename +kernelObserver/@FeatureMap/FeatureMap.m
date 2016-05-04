@@ -140,7 +140,7 @@ classdef FeatureMap < handle
         [~, map_deriv] = kernelObserver.generic_kernel(obj.basis,...
                                                        data, obj.mapper);
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
-        data_trans = obj.basis*data;
+        data_trans = transpose(obj.basis)*data;
         data_comp = (1/obj.mapper.k_params(1)).*[data_trans; data_trans];
         map_deriv = {};
         map_deriv_curr = [-cos(data_trans); 

@@ -54,8 +54,8 @@ map_struct_rbfn.centers = -5:0.1:5;
 fmap_rbfn = kernelObserver.FeatureMap(model_type_rbfn);
 fmap_rbfn.fit(map_struct_rbfn);
 
-[Kmat_small_rbfn, ~] =  kernelObserver.measurement_operator(meas_type, nmeas_small, fmap_rbfn);
-[Kmat_large_rbfn, ~] =  kernelObserver.measurement_operator(meas_type, nmeas_large, fmap_rbfn);
+Kmat_small_rbfn = kernelObserver.measurement_operator(meas_type, nmeas_small, fmap_rbfn);
+Kmat_large_rbfn = kernelObserver.measurement_operator(meas_type, nmeas_large, fmap_rbfn);
 
 %% generate RandomKitchenSinks feature map and associated measurement operator
 model_type_rks = 'RandomKitchenSinks';
@@ -66,8 +66,8 @@ map_struct_rks.kernel_obj = kernelObserver.kernelObj(k_type, bandwidth);
 fmap_rks = kernelObserver.FeatureMap(model_type_rks);
 fmap_rks.fit(map_struct_rks);
 
-[Kmat_small_rks, ~] =  kernelObserver.measurement_operator(meas_type, nmeas_small, fmap_rks);
-[Kmat_large_rks, ~] =  kernelObserver.measurement_operator(meas_type, nmeas_large, fmap_rks);
+Kmat_small_rks = kernelObserver.measurement_operator(meas_type, nmeas_small, fmap_rks);
+Kmat_large_rks = kernelObserver.measurement_operator(meas_type, nmeas_large, fmap_rks);
 
 %% plot final results
 figure(1);
