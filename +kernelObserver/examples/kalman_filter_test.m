@@ -57,7 +57,7 @@ Q = 0.0001*eye(ncent);
 R = 0.1*eye(nmeas);
 QL = chol(Q);
 RL = chol(R);
-m_init = [2; 0.001; 3; -0.01];
+m_init = [2; 0.001; -3; -0.01];
 rand_init = randn(dyn_dim, 1);
 
 %% initialize KalmanFilter, and compute filter measurements and corrections
@@ -117,5 +117,3 @@ set(findall(gcf,'type','text'),'FontSize', font_size)
 
 set(figure(1),'Position',[100 100 800 600]);
 set(figure(2),'Position',[100 100 800 600]);
-% set(figure(3),'Position',[100 100 800 600]);
-% set(figure(4),'Position',[100 100 800 600]);
