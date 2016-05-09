@@ -3,12 +3,10 @@
 %  Implements a simple Kalman filter that is used by KernelObserver class.  
 % 
 %  Inputs:
-%    fmap_type  - string indication feature map: 
-%                 {"RBFNetwork", "RandomKitchenSinks"}.
-%    map_struct - struct with mapping parameters
+%               - see constructor
 %
 %  Outputs:
-%               -see functions
+%               - see functions
 %
 %============================= KalmanFilter ===============================
 %
@@ -46,7 +44,7 @@ classdef KalmanFilter < handle
       %  Constructor for KalmanFilter: initialize filter parameters.
       %
       %  Inputs:
-      %    P_init     - initial m x m error covariance matrix
+      %    P_init     - m x m initial error covariance matrix
       %    Q          - m x m process noise covariance matrix
       %    R          - n x n measurement noise covariance matrix
       %
@@ -85,13 +83,18 @@ classdef KalmanFilter < handle
       %    m_k        - a posteriori m x 1 state estimate
       %    P_k        - a posteriori m x m error covariance matrix
       %
-      m_k_pred = obj.A*obj.m_prev;
-      P_k_pred = obj.A*obj.P_k_prev*obj.A' + obj.Q;
-      v_k = meas_curr - obj.C*m_k_pred;
-      S_k = obj.C*P_k_pred*obj.C' + obj.R;
-      C_k = P_k_pred*obj.C'/S_k;
-      m_k = m_k_pred + C_k*v_k;
-      P_k = (eye(obj.nstates) - C_k*obj.C)*P_k_pred;
+      
+      % predict equations
+      m_k_pred = obj.A*obj.m_prev;  % predicted (a priori) state
+      P_k_pred = obj.A*obj.P_k_prev*transpose(obj.A) + obj.Q;  % predicted (a priori) covariance estimate
+      
+      % update equations
+      v_k = meas_curr - obj.C*m_k_pred;       % residual signal (innovation) 
+      S_k = obj.C*P_k_pred*obj.C' + obj.R;    % residual covariance
+      K_k = (P_k_pred*transpose(obj.C))/S_k;  % Kalman gain 
+      m_k = m_k_pred + K_k*v_k;               % updated (a posteriori) state
+      P_k = (eye(obj.nstates) - ...
+            K_k*obj.C)*P_k_pred;              % updated (a posteriori) covariance
       
       obj.m_prev = m_k;
       obj.P_k_prev = P_k;
@@ -105,6 +108,8 @@ classdef KalmanFilter < handle
           mval = obj.A;
         case {'C'}
           mval = obj.C;
+        case {'m_prev'}
+          mval = obj.m_prev;  
         case {'meas_prev'}
           mval = obj.meas_prev;
         case {'P_k_prev'}

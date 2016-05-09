@@ -40,22 +40,31 @@ add_process_noise = 'yes';
 save_unit_test = 0; 
 
 %% filter parameters
-A = [1 1 0 0; 0 1 0 0; 0 0 1 1; 0 0 0 1];  % dynamics model for radar 
+Ac = [1 1 0 0; 0 1 0 0; 0 0 1 1; 0 0 0 1];  % dynamics model for radar 
 C = [1 0 0 0; 0 0 1 0];
+
+dyn_dim = size(Ac, 1);
+meas_dim = size(C, 1);
+
+dt = 0.001;  % time step
+A = eye(size(Ac, 1)) + dt.*Ac;  % discretize dynamics operator
 
 nmeas = size(C, 1);
 ncent = size(A, 1);
 
 P_init = 0.0001*eye(ncent);
 Q = 0.0001*eye(ncent);
-R = 0.001*eye(nmeas);
-m_init = [2; 0.0001; 3; -0.0001];
+R = 0.1*eye(nmeas);
+QL = chol(Q);
+RL = chol(R);
+m_init = [2; 0.001; 3; -0.01];
+rand_init = randn(dyn_dim, 1);
 
 %% initialize KalmanFilter, and compute filter measurements and corrections
 kf = kernelObserver.KalmanFilter(P_init, Q, R);
-kf.fit(A, C, m_init);
+kf.fit(A, C, rand_init);
 
-time_steps = 100; 
+time_steps = 1000; 
 
 states_noisy = zeros(ncent, time_steps);
 meas_noisy = zeros(nmeas, time_steps);
@@ -65,14 +74,14 @@ curr_state = m_init;
 
 % generate measurements
 for i=1:time_steps
-  meas_noisy(:, i) = C*curr_state + R*randn(nmeas, 1);
+  meas_noisy(:, i) = C*curr_state + RL*randn(nmeas, 1);
   meas_actual(:, i) = C*curr_state;
   
   pred_state = kf.predict(meas_noisy(:, i));
   meas_kalman(:, i) = C*pred_state;
   
   if strcmp(add_process_noise, 'yes')
-    states_noisy(:, i) = curr_state + Q*randn(ncent, 1);
+    states_noisy(:, i) = curr_state + QL*randn(ncent, 1);
   else
     states_noisy(:, i) = curr_state;
   end
