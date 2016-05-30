@@ -50,7 +50,7 @@ classdef FeatureSpaceGenerator < handle
       obj.fspace_model = fspace_model;
     end  
                 
-    function [params] = fit(obj, data, obs)
+    function [params] = fit(obj, data_cell, obs_cell)
       %  Given time-series data, infer parameters of kernel model as
       %  time-series. Infer final parameters 
       %
@@ -61,9 +61,9 @@ classdef FeatureSpaceGenerator < handle
       %  Outputs:
       %    -none 
       try
-        [~, nsamp, nsteps] = size(data);
-        [~, nsamp2, nsteps2] = size(obs);
-        assert(nsteps == nsteps2 && nsamp == nsamp2);
+        nsteps = size(data_cell, 2);
+        nsteps2 = size(obs_cell, 2);
+        assert(nsteps == nsteps2);
       catch ME
         disp([ME.message '!'])
         err = MException('VerifyInput:OutOfBounds', ...
@@ -79,7 +79,7 @@ classdef FeatureSpaceGenerator < handle
         if i > 1
         end                                       
         obj.fspace_model.debug_mode = obj.display;
-        obj.fspace_model.fit(data(:, :, i), obs(:, :, i));
+        obj.fspace_model.fit(data_cell{i}, obs_cell{i});
         params(:, i) = obj.fspace_model.get_params();
       end      
     end

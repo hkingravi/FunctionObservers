@@ -65,7 +65,6 @@ kf = kernelObserver.KalmanFilter(P_init, Q, R);
 kf.fit(A, C, rand_init);
 
 time_steps = 1000; 
-
 states_noisy = zeros(ncent, time_steps);
 meas_noisy = zeros(nmeas, time_steps);
 meas_actual = zeros(nmeas, time_steps);

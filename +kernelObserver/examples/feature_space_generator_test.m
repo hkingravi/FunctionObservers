@@ -29,13 +29,28 @@ s = RandStream('mt19937ar','Seed',seed);
 RandStream.setGlobalStream(s);
 
 
-%% load time-series data
+%% load time-series data, convert it to a cell array
 generator = 'RBFNetwork';
 k_type = 'gaussian';
 scheme = 'smooth2'; % smoothly varying system 
 load_file = ['./data/synthetic_time_series_generator_' generator ...
              '_kernel_' k_type '_scheme_' scheme '.mat'];       
 load(load_file)
+
+nsamp_tr = 50;  % truncate series for now
+orig_func_data = orig_func_data(:, :, 1:nsamp_tr);
+orig_func_obs = orig_func_obs(:, :, 1:nsamp_tr);
+
+tic
+nsteps = size(orig_func_data, 3);
+orig_func_data_cell = cell(1, nsteps);
+orig_func_obs_cell = cell(1, nsteps);
+for i=1:nsteps
+  orig_func_data_cell{i} = orig_func_data(:, :, i);
+  orig_func_obs_cell{i} = orig_func_obs(:, :, i);
+end
+cell_time = toc;
+disp(['Time taken to construct data cells: ' num2str(cell_time)])
 
 %% first, create finite-dimensional kernel model (RandomKitchenSinks)
 nbases = 500;
@@ -52,7 +67,7 @@ rks = kernelObserver.RandomKitchenSinks(nbases, ndim, k_type, ...
 %% now create FeatureSpaceGenerator object and infer parameters
 fsg = kernelObserver.FeatureSpaceGenerator(rks);
 tic
-params = fsg.fit(orig_func_data, orig_func_obs);
+params = fsg.fit(orig_func_data_cell, orig_func_obs_cell);
 t_end = toc; 
 disp(['Training time for batch: ' num2str(t_end) ' seconds.'])
 

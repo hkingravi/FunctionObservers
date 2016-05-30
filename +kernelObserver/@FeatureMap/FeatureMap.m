@@ -28,11 +28,13 @@ classdef FeatureMap < handle
     
   % hidden variables 
   properties (Access = protected)    
-    seed = [];    
+    seed       = [];    
     model_type = [];
-    basis = [];
-    mapper = [];
-    nbases = [];
+    basis      = [];
+    mapper     = [];
+    nbases     = [];
+    sort_mat   = [];
+    ndim       = [];
   end
   
   % class methods 
@@ -87,22 +89,28 @@ classdef FeatureMap < handle
         if ~isfield(map_struct, 'nbases') || ...
            ~isfield(map_struct, 'ndim') || ...
            ~isfield(map_struct, 'kernel_obj') || ...
-           ~isfield(map_struct, 'seed')         
+           ~isfield(map_struct, 'seed') || ...
+           ~isfield(map_struct, 'sort_mat')
           exception = MException('VerifyInput:OutOfBounds', ...
-            ' map_struct missing fields nbases or kernel_obj');
+            ' map_struct missing fields: see documentation');
           throw(exception);
         else
           obj.seed = map_struct.seed;
+          obj.sort_mat = map_struct.sort_mat;          
           s = RandStream('mt19937ar','Seed', obj.seed);
           RandStream.setGlobalStream(s);
           
           bandwidth = map_struct.kernel_obj.k_params(1);
           obj.nbases = map_struct.nbases;
           obj.basis = (1/bandwidth)*randn(map_struct.ndim, obj.nbases);
+          if map_struct.ndim == 1 && map_struct.sort_mat == 1            
+            disp('Sorting random matrix...')
+            obj.basis = sort(obj.basis);
+          end
           obj.mapper = map_struct.kernel_obj;          
         end
       end
-       
+      obj.ndim = size(obj.basis, 1); 
     end
     
     function [mapped_data] = transform(obj, data)
@@ -162,7 +170,9 @@ classdef FeatureMap < handle
         case {'model_type'}
           mval = obj.model_type;          
         case {'seed'}
-          mval = obj.seed;                    
+          mval = obj.seed;   
+        case {'sort_mat'}
+          mval = obj.sort_mat; 
         otherwise
           disp('wrong variable name')
       end

@@ -46,9 +46,8 @@ classdef RandomKitchenSinks < handle
     sort_mat            = 0; 
     k_obj               = [];
     weights             = [];
-    rand_mat            = [];   % random matrix for feature map
     mapper              = [];
-    optimizer           = [];
+    param_struct        = [];
     params_final        = [];   % used by FeatureSpaceGenerator objects    
   end
   
@@ -56,13 +55,35 @@ classdef RandomKitchenSinks < handle
   methods
     
     function obj = RandomKitchenSinks(nbases_rks, ndim, k_func_in, parameters_in, ...
-                                      noise_in, optimizer_in)
+                                      noise_in, param_struct_in)
       %  Constructor for RandomKitchenSinks.
       %
       %  Inputs:
-      %    nbases_rks  - number of bases: you will generate a map TWICE this
-      %                 length!
-      %    ndim        - dimensionality of data
+      %    nbases_rks       - number of bases: you will generate a map 
+      %                       TWICE this length!
+      %    ndim             - dimensionality of data
+      %    k_func_in        - 'gaussian' only for now
+      %    parameters_in    - Gaussian kernel radial parameter (bandwidth)
+      %    noise_in         - observation noise initialization
+      %    param_struct_in  - struct containing extra parameters,
+      %                       particularly for the min_func package for
+      %                       optimizing the hyperparameters. Can have
+      %                       fields
+      %                       - 'method': what method to choose for
+      %                                   optimization (none, which just 
+      %                                   trains weights using the initial
+      %                                   parameters, cross-validation,
+      %                                   or likelihood maximization): 
+      %                                   {'none', 'cv', 'likelihood'}
+      %                       - 'useMex': use compiled C code in minFunc
+      %                       - 'Display': display minFunc iterations
+      %                       - 'solver': {'primal', 'dual'} for large
+      %                                   datasets, use 'primal'
+      %                       - 'DerivativeCheck': {'off', 'on'}
+      %                       - 'sort_mat': only use for single-dimensional
+      %                                     inputs, to get descriptive 
+      %                                     pictures of the Fourier 
+      %                                     operator: {0, 1} 
       %
       %  Outputs:
       %    -none      
@@ -78,35 +99,24 @@ classdef RandomKitchenSinks < handle
       end
           
       obj.k_obj = kernelObserver.kernelObj(k_func_in, parameters_in(1));      
-      obj.rand_mat = randn(obj.nbases_rks, obj.ndim);
       
       if nargin > 4
           obj.noise = noise_in; 
           if nargin > 5
-            if ~strcmp(optimizer_in.method, 'none') && ...
-                ~strcmp(optimizer_in.method, 'cv') && ...
-                ~strcmp(optimizer_in.method, 'likelihood')
+            if ~strcmp(param_struct_in.method, 'none') && ...
+                ~strcmp(param_struct_in.method, 'cv') && ...
+                ~strcmp(param_struct_in.method, 'likelihood')
               exception = MException('VerifyInput:OutOfBounds', ...
                 ' incorrect choice of optimizer');
               throw(exception);
             end
-            obj.optimizer = optimizer_in;
+            obj.param_struct = param_struct_in;
+            if isfield(obj.param_struct, 'sort_mat')
+              obj.sort_mat = obj.param_struct.sort_mat; 
+            end
           end
       end    
       
-      if obj.ndim == 1
-        obj.rand_mat = 1/(obj.sigma)*randn(obj.nbases_rks, obj.ndim);  
-        if obj.sort_mat == 1          
-          obj.rand_mat = sort(obj.rand_mat);
-        end  
-      else
-        temp = eye(obj.ndim)/(obj.sigma);
-        Mat = randn(obj.nbases_rks, obj.ndim);                 
-        obj.rand_mat =[];
-        for i=1:obj.ndim
-            obj.rand_mat = [obj.rand_mat Mat(:,i)*temp(i)];
-        end
-      end
     end  
           
     function fit(obj, data, obs)
@@ -119,49 +129,49 @@ classdef RandomKitchenSinks < handle
       %
       %  Outputs:
       %    -none 
-      if strcmp(obj.optimizer.method, 'none')
+      if strcmp(obj.param_struct.method, 'none')
         [weights_out, ~] = obj.fit_current(data, obs);
         obj.weights = weights_out;
-      elseif strcmp(obj.optimizer.method, 'cv')
+      elseif strcmp(obj.param_struct.method, 'cv')
       
-      elseif strcmp(obj.optimizer.method, 'likelihood')
+      elseif strcmp(obj.param_struct.method, 'likelihood')
         addpath('../../minFunc/minFunc/')
         addpath('../../minFunc/autoDif/')
         % set up minFunc's parameters
         params = [log(obj.k_obj.k_params); log(obj.noise)];
         
         % parse options
-        if ~isfield(obj.optimizer, 'useMex')
+        if ~isfield(obj.param_struct, 'useMex')
           options.useMex = 0;
         else          
-          options.useMex = obj.optimizer.useMex;
+          options.useMex = obj.param_struct.useMex;
         end  
-        if ~isfield(obj.optimizer, 'Display')
-          obj.optimizer.Display = 'off';
+        if ~isfield(obj.param_struct, 'Display')
+          obj.param_struct.Display = 'off';
           options.Display = 'off';
         else
-          options.Display = obj.optimizer.Display;
+          options.Display = obj.param_struct.Display;
         end  
-        if ~isfield(obj.optimizer, 'solver')
-          obj.optimizer.solver = 'primal';        
+        if ~isfield(obj.param_struct, 'solver')
+          obj.param_struct.solver = 'primal';        
         end  
-        if ~isfield(obj.optimizer, 'DerivativeCheck')
-          obj.optimizer.DerivativeCheck = 'off';        
+        if ~isfield(obj.param_struct, 'DerivativeCheck')
+          obj.param_struct.DerivativeCheck = 'off';        
         else
-          options.DerivativeCheck = obj.optimizer.DerivativeCheck;
+          options.DerivativeCheck = obj.param_struct.DerivativeCheck;
         end  
         
-        if ~strcmp(obj.optimizer.solver, 'primal') && ...
-           ~strcmp(obj.optimizer.solver, 'dual')
+        if ~strcmp(obj.param_struct.solver, 'primal') && ...
+           ~strcmp(obj.param_struct.solver, 'dual')
          disp('Incorrect choice for optimizer.solver: resorting to primal')
-         obj.optimizer.solver = 'primal';
+         obj.param_struct.solver = 'primal';
         end
                                 
         options.MaxIter = 350;      
         opt_params = minFunc(@kernelObserver.negative_log_likelihood_rks, ...
-                             params, options, obj.nbases_rks, obj.ndim, obj.seed,...
+                             params, options, obj.nbases_rks, obj.ndim, obj.seed, obj.sort_mat,...
                              data, obs, obj.k_obj.k_name, 'RandomKitchenSinks', ... 
-                             obj.optimizer.solver);
+                             obj.param_struct.solver);
         
         if strcmp(obj.debug_mode, 'on')
           fprintf('band = %.4f, noise = %.4f\n', exp(opt_params(1)),...
@@ -250,6 +260,7 @@ classdef RandomKitchenSinks < handle
       mapper = kernelObserver.FeatureMap('RandomKitchenSinks');
       map_struct.nbases = obj.nbases_rks; map_struct.ndim = obj.ndim;
       map_struct.seed = obj.seed; map_struct.kernel_obj = obj.k_obj;
+      map_struct.sort_mat = obj.sort_mat; 
       mapper.fit(map_struct);
     end      
     

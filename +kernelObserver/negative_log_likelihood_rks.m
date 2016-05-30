@@ -34,7 +34,7 @@
 %  Modified: 	2016/03/30
 %
 %====================== negative_log_likelihood ===========================
-function [nll, derivs] =  negative_log_likelihood_rks(param_vec, nbases, ndim, seed, ...
+function [nll, derivs] =  negative_log_likelihood_rks(param_vec, nbases, ndim, seed, sort_mat, ...
                                                       data, obs, k_type, ...
                                                       mapper_type, solver_type)
 
@@ -44,7 +44,7 @@ if ~strcmp(solver_type, 'primal') && ~strcmp(solver_type, 'dual')
                          ' primal or dual');
   throw(exception);
 end  
-                                                
+                                                 
 % compute kernel map, and then kernel matrix 
 nsamp = size(data, 2);
 dim = length(param_vec);
@@ -58,6 +58,7 @@ map_struct.kernel_obj = k_obj;
 map_struct.nbases = nbases; 
 map_struct.ndim = ndim;
 map_struct.seed = seed;
+map_struct.sort_mat = sort_mat;
 mapper.fit(map_struct);
 m_data = mapper.transform(data);
 

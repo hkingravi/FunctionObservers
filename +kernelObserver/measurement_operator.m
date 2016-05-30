@@ -20,10 +20,11 @@
 %  Author:    Hassan A. Kingravi
 %
 %  Created:   2016/04/30
-%  Modified:  2016/04/30
+%  Modified:  2016/05/10
 %
 %========================== measurement_operator ==========================
-function [Kmat, meas_basis] =  measurement_operator(meas_type, nmeas, fmap)
+function [Kmat, meas_basis,...
+          meas_inds] =  measurement_operator(meas_type, nmeas, fmap, data)
 
 if ~strcmp(meas_type, 'random') &&...
     ~strcmp(meas_type, 'rational')
@@ -33,13 +34,21 @@ if ~strcmp(meas_type, 'random') &&...
   throw(exception);
 end
 
-basis = fmap.get('basis');
-ncent = size(basis, 2);
+% basis = fmap.get('basis');
 
 if strcmp(meas_type, 'random')
-  % randomly select subset of basis to construct operator
-  rand_inds = randperm(ncent);
-  meas_basis = basis(:, rand_inds(1:nmeas));
+  % randomly select subset of data to construct operator  
+  nsamp = size(data, 2);
+  rand_inds = randperm(nsamp);
+  meas_inds = rand_inds(1:nmeas);
+  meas_basis = data(:, meas_inds);
+  
+  % just check if matrix is sorted: only really used for pretty plots
+  if strcmp(fmap.get('model_type'), 'RandomKitchenSinks') && ...
+     fmap.get('sort_mat') == 1 && fmap.get('sort_mat') == 1
+    meas_basis = sort(meas_basis);
+  end 
+  
   Kmat = fmap.transform(meas_basis);
 elseif strcmp(meas_type, 'rational')
   exception = MException('VerifyInput:OutOfBounds', ...
