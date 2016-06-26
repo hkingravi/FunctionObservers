@@ -44,9 +44,8 @@ if strcmp(meas_type, 'random')
   meas_basis = data(:, meas_inds);
   
   % just check if matrix is sorted: only really used for pretty plots
-  if strcmp(fmap.get('model_type'), 'RandomKitchenSinks') && ...
-     fmap.get('sort_mat') == 1 && fmap.get('sort_mat') == 1
-    meas_basis = sort(meas_basis);
+  if fmap.get('sort_mat') == 1
+    meas_basis = sort(meas_basis);  
   end 
   
   Kmat = fmap.transform(meas_basis);

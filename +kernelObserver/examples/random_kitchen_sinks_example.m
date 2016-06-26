@@ -30,7 +30,10 @@ addpath('./utils')
 % plot parameters 
 f_lwidth = 3; 
 f_marksize = 5;
-c_marksize = 10;
+c_marksize = 15;
+font_size = 15;
+save_results = 1; 
+ext = 'png';
 
 % flags for plotting and saving
 save_unit_test = 0; 
@@ -41,6 +44,7 @@ load KRR_test
 data = x;
 obs = y_n;
 
+%% Inference
 % generate RKS map
 nbases = 200;
 ndim = 1; 
@@ -65,7 +69,7 @@ disp(['Training time for batch: ' num2str(estimate_time)])
 K = Kp'*Kp;
 K_deriv = Kp_deriv{1}'*Kp_deriv{1};
 
-% plot to see estimates 
+%% Results
 figure(1);
 imagesc(K)
 title('Kernel Matrix')
@@ -75,11 +79,11 @@ imagesc(K_deriv)
 title('Kernel Derivative Matrix')
 
 figure(3);
-plot(data, obs, 'ro', 'MarkerSize', f_marksize);
+plot(data, obs, 'ro', 'MarkerSize', f_marksize, 'LineWidth', f_lwidth);
 hold on; 
 plot(data, pred_data, 'g', 'LineWidth', f_lwidth);
 h_legend = legend('observations','estimate');
-set(h_legend, 'FontSize', 20);  
+set(h_legend, 'FontSize', font_size);  
 
 if plot_nll ~= 0
   % evaluate nll on multiple inputs
@@ -113,6 +117,27 @@ if plot_nll ~= 0
   legend('NLL')
   
 end
+
+set(figure(1), 'Position', [100 100 800 600]);
+set(figure(2), 'Position', [100 100 800 600]);
+set(figure(3), 'Position', [100 100 800 600]);
+
+if save_results == 1
+  save_file1 = './results/rks_gp_example_fig1_kmat';
+  save_file2 = './results/rks_gp_example_fig2_kmat_deriv';
+  save_file3 = './results/rks_gp_example_fig3_infer';
+  
+  set(figure(1),'PaperOrientation','portrait','PaperSize', [8.5 7],...
+    'PaperPositionMode', 'auto', 'PaperType','<custom>');
+  set(figure(2),'PaperOrientation','portrait','PaperSize', [8.5 7],...
+    'PaperPositionMode', 'auto', 'PaperType','<custom>');
+  set(figure(3),'PaperOrientation','portrait','PaperSize', [8.5 7],...
+    'PaperPositionMode', 'auto', 'PaperType','<custom>');  
+  saveas(figure(1), save_file1, ext)
+  saveas(figure(2), save_file2, ext)
+  saveas(figure(3), save_file3, ext)
+end
+
 
 % save data for unit testing if necessary
 if save_unit_test ~= 0

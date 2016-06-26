@@ -36,7 +36,7 @@ ext = 'png';
 %% Time-Series Data Loading and Setup
 generator = 'RBFNetwork';
 k_type = 'gaussian';
-scheme = 'smooth2'; % smoothly varying system 
+scheme = 'smooth3'; % smoothly varying system 
 load_file = ['./data/synthetic_time_series_generator_' generator ...
              '_kernel_' k_type '_scheme_' scheme '.mat'];       
 load(load_file)
@@ -64,8 +64,16 @@ meas_data = func_data_tr{1};  % we will subsample the data locations from this m
 sorted = 0;
 xmin = min(orig_func_data_cell{1});
 xmax = max(orig_func_data_cell{1});
-ymin = -36;
-ymax = 36;
+
+% scheme plotting limits
+if strcmp(scheme, 'switching') || strcmp(scheme, 'switching2') || ...
+   strcmp(scheme, 'smooth3') 
+  ymin = -4;
+  ymax = 4;
+elseif strcmp(scheme, 'smooth2')
+  ymin = -10;
+  ymax = 10;
+end
 use_plot_min = 1;
 
 %% first, create finite-dimensional kernel model (RandomKitchenSinks)
@@ -80,7 +88,7 @@ rks = kernelObserver.RandomKitchenSinks(nbases, ndim, k_type, ...
                                         bandwidth, noise,...
                                         optimizer);
 meas_type = 'random';
-nmeas = 100;
+nmeas = 20;
 
 %% create KernelObserver object and infer parameters
 param_struct = struct();  % pass in empty struct to use defaults for filter
@@ -100,27 +108,32 @@ A = filter.get('A');
 %% Functional Output Selection 
 % select which type of output you're interested in seeing; default is the
 % tracking error, while the other option is visualization of the functions
-output = 'error'; % 'error' or 'function'
+output = 'gif'; % 'error' or 'function'
 
 if strcmp(output,'function')
-  vidObj_auto_vs_obs = VideoWriter(['./results/kobs_function_auto_vs_obs_' scheme ...
+  % create gif
+  vidObj_auto_vs_obs = VideoWriter(['./results/kobs_function_' scheme ...
                                     '_rks_nmeas_' num2str(nmeas) '.avi'] );
   open(vidObj_auto_vs_obs);
+elseif strcmp(output,'gif')
+  gif_file = ['./results/kobs_function_' scheme ...
+              '_rks_nmeas_' num2str(nmeas) '.gif'];
+  gif_prefix = ['./results/frames/kobs_function_auto_vs_obs_' scheme ...
+                '_rks_nmeas_' num2str(nmeas) '_frame_'];
 end
 
 %% Prediction Section
 % utilize KernelObserver to predict output 
 tic
-nsamp_te = size(func_data_te, 2);
+nsamp_te = size(func_data_te, 2); 
 preds_te = cell(1, nsamp_te);
 rms_error_te = zeros(1, nsamp_te);
-te_times = zeros(1, nsamp_te);
 weights_stream = zeros(2*nbases, nsamp_te);
+te_times = times(nsamp_te_start:nsteps);
 for i=1:nsamp_te
   % make predictions on the entire dataset using current weights
   f = kobs.predict(func_data_te{i});
   rms_error_te(i) = norm(f - func_obs_te{i});
-  te_times(i) = i;
   preds_te{i} = f;  
   weights_stream(:, i) = kobs.get('curr_weights');
   
@@ -129,16 +142,15 @@ for i=1:nsamp_te
   kobs.update(current_meas');  
   
   % create video, if asked for
-  if strcmp(output, 'function')
+  if strcmp(output, 'function') || strcmp(output, 'gif')
     % create arrays for plotting
     pred_data = func_data_te{i}(meas_inds); 
-    pred_obs = func_obs_te{i}(meas_inds); 
+    pred_obs = current_meas; 
     eval_data = func_data_te{i};
     orig_func_plot = func_obs_te{i}; 
     pred_obs_plot = f; 
     
     figure(1);
-%     subplot(1,2,1)        
     plot(eval_data, orig_func_plot, 'g', 'LineWidth', 3);
     hold on;
     plot(eval_data, pred_obs_plot, 'b--', 'LineWidth', 3);
@@ -150,23 +162,32 @@ for i=1:nsamp_te
     end
     set(gca, 'FontSize', 20)
     h_legend = legend('original', 'observer');
-    set(h_legend, 'FontSize',20);
+    set(h_legend, 'FontSize', font_size);
+    ylabel('Function', 'FontSize', font_size)
+    xlabel('Domain', 'FontSize', font_size)
+    set(gca, 'FontSize', font_size)           
+    set(figure(1), 'Position', [100 100 1000 600]);
     
-%     subplot(1,2,2)
-%     boxplot([abs(orig_func_plot-pred_obs_plot)'])
-%     set(gca,'XTick',[1 2], 'XTickLabel', 'observer')
-%     ylim([0 4])
-%     set(gca,'FontSize',20)
-    
-    set(figure(1),'Position',[100 100 1000 600]);
-    currFrame = getframe(gcf);
-    writeVideo(vidObj_auto_vs_obs,currFrame);
+    if strcmp(output, 'function')
+      currFrame = getframe(gcf);
+      writeVideo(vidObj_auto_vs_obs,currFrame);
+    else
+       drawnow;
+       frame = getframe(1);
+       [A_g, map] = rgb2ind(frame.cdata, 256, 'nodither');
+       if i == 1;
+         imwrite(A_g, map, gif_file, 'gif', 'LoopCount', Inf, 'DelayTime', 0);
+       else
+         imwrite(A_g, map, gif_file, 'gif', 'WriteMode', 'append', 'DelayTime', 0);
+       end
+    end
   end
-  % end video
+  % end video or gif
+  close all; 
 end
 
 if strcmp(output,'function')
-  close(vidObj_auto_vs_obs);
+  close(vidObj_auto_vs_obs); 
 end  
 
 predict_time = toc;
@@ -177,7 +198,7 @@ disp(['Time taken to predict on ' num2str(nsamp_te) ' samples: '...
 %% Results Section
 % visualize parameter stream
 figure(1);
-plot(param_stream(1, :), 'b', 'LineWidth', line_width)
+plot(times(1:nsamp_tr), param_stream(1, :), 'b', 'LineWidth', line_width)
 xlabel('Time step')
 ylabel('Bandwidth')
 title('Bandwidth parameter over time')
@@ -185,7 +206,7 @@ set(gca,'FontSize', font_size)
 set(findall(gcf,'type','text'),'FontSize', font_size)
 
 figure(2);
-plot(param_stream(2, :), 'b', 'LineWidth', line_width)
+plot(times(1:nsamp_tr), param_stream(2, :), 'b', 'LineWidth', line_width)
 xlabel('Time step')
 ylabel('Noise')
 title('Noise parameter over time')
@@ -194,7 +215,7 @@ set(findall(gcf,'type','text'),'FontSize', font_size)
 
 figure(3);
 imagesc(K); colorbar;
-t_rks = ['Measurement operator (' meas_type ') for Kernel Observer (RKS) with'...
+t_rks = ['Measurement operator (' meas_type ') for Kernel Observer (RKS) with '...
          num2str(nmeas) ' measurements'];
 title(t_rks)
 xlabel('Basis')
@@ -204,7 +225,7 @@ set(findall(gcf,'type','text'),'FontSize', font_size)
 
 figure(4);
 imagesc(abs(A)); colorbar;
-t_rks = ['Dynamics operator (abs) (' meas_type ') for Kernel Observer (RKS) with'...
+t_rks = ['Dynamics operator (abs) (' meas_type ') for Kernel Observer (RKS) with '...
          num2str(nmeas) ' measurements'];
 title(t_rks)
 xlabel('Bases')
@@ -220,6 +241,7 @@ if strcmp(output,'error')
   title('Predicted and actual function error over time (unnormalized)')
   set(gca,'FontSize', font_size)
   set(findall(gcf,'type','text'), 'FontSize', font_size)
+  xlim([min(te_times) max(te_times)])
 end  
 
 set(figure(1), 'Position', [100 100 800 600]);

@@ -45,7 +45,7 @@ function [Wstar] = time_varying_uncertainty(Wstar, t, scheme)
     Wstar(1) = 0.1*Wstar(1) + 0.2*sin(t)*Wstar(2) + 0.2*sin(t);
     Wstar(2) = 0.4*cos(1.1*t) + 0.5*Wstar(2);
     Wstar(3) = max(min(0.1*cos(1.1*t) + Wstar(3),2),-2);
-    Wstar(4) = sin(Wstar(5)) + Wstar(4)*max(min(0.1*cos(1.1*t) + 0.3*sin(25*t),2),-2);
+    Wstar(4) = 0.3*(sin(Wstar(5)) + Wstar(4)*max(min(0.1*cos(1.1*t) + 0.3*sin(25*t),2),-2));
     Wstar(5) = 0.8*cos(2.2*t) + max(min(0.1*cos(1.1*t)*Wstar(1) + Wstar(5),2),-2);
   elseif strcmp(scheme,'smooth4')
     Wstar(1) = 0.7*Wstar(1) + 0.2*sin(t)*Wstar(2) + 0.3*sin(t);
@@ -53,14 +53,14 @@ function [Wstar] = time_varying_uncertainty(Wstar, t, scheme)
     Wstar(3) = max(min(0.1*cos(1.1*t) + Wstar(3),2),-2);
     Wstar(4) = sin(Wstar(5)) + Wstar(4)*max(min(0.1*cos(1.1*t) + 0.3*sin(25*t),2),-2);
     Wstar(5) = 0.1*cos(2.2*t) + max(min(0.1*cos(1.1*t)*Wstar(1) + Wstar(5),2),-2);      
-  elseif strcmp(scheme,'switching') % switch between a series of weights
-    if t < 15   
+  elseif strcmp(scheme, 'switching') % switch between a series of weights
+    if t < 5   
       Wstar(1) = 0.999*Wstar(1) + 0.001*sin(t);
       Wstar(2) = 0.1*cos(1.1*t) + 0*Wstar(2);
       Wstar(3) = max(min(0.1*cos(1.1*t) + Wstar(3),2),-2);
       Wstar(4) = max(min(0.1*cos(1.1*t) + 0.3*sin(25*t),2),-2);
       Wstar(5) = 0.01*cos(2.2*t) + 0.01*Wstar(5);              
-    elseif t>15 && t < 35
+    elseif t>5 && t < 10
       Wstar(1) = 0.9*Wstar(1) + 0.001*cos(t);
       Wstar(2) = 0.1*cos(0.5*t) + 0*Wstar(2);
       Wstar(3) = max(min(1*cos(1.2*t) + Wstar(3),1.5),-1.5);
@@ -72,8 +72,28 @@ function [Wstar] = time_varying_uncertainty(Wstar, t, scheme)
       Wstar(3) = max(min(0.4*cos(1.2*t) + Wstar(3),1.0),-1.0);
       Wstar(4) = max(min(0.2*cos(1.1*t) + 0.3*sin(28*t),2),-2);
       Wstar(5) = 0.1*cos(2.0*t) + 0.01*Wstar(5);                              
-    end            
-  elseif strcmp(scheme,'fast_switching')
+    end     
+  elseif strcmp(scheme, 'switching2') % switch between a series of weights
+    if t < 5
+      Wstar(1) = 0.999*Wstar(1) + 0.001*sin(t);
+      Wstar(2) = 0.1*cos(1.1*t) + 0*Wstar(2);
+      Wstar(3) = max(min(0.1*cos(1.1*t) + Wstar(3),2),-2);
+      Wstar(4) = max(min(0.1*cos(1.1*t)*Wstar(1) + 0.3*sin(25*t),2),-2);
+      Wstar(5) = 0.01*cos(2.2*t)*Wstar(2) + 0.01*Wstar(5);
+    elseif t>5 && t < 10
+      Wstar(1) = 0.9*Wstar(1) + 0.001*cos(t);
+      Wstar(2) = 0.1*cos(0.5*t*Wstar(1)) + 0*Wstar(2);
+      Wstar(3) = max(min(1*cos(1.2*t) + Wstar(3),1.5),-1.5);
+      Wstar(4) = max(min(0.1*cos(1.1*t*Wstar(3)) + 0.3*sin(30*t),1.2),-1.2);
+      Wstar(5) = 0.1*cos(2.2*t)*Wstar(2) + 0.01*Wstar(5);
+    else
+      Wstar(1) = 0.9*Wstar(1)*Wstar(2) + 0.01*cos(t);
+      Wstar(2) = 0.1*cos(1.0*t) + Wstar(3);
+      Wstar(3) = max(min(0.4*cos(1.2*t) + Wstar(3),1.0),-1.0);
+      Wstar(4) = Wstar(5)*max(min(0.2*cos(1.1*t) + 0.3*sin(28*t),2),-2);
+      Wstar(5) = 0.1*cos(2.0*t*Wstar(1)) + 0.01*Wstar(5);
+    end
+  elseif strcmp(scheme, 'fast_switching')
     if t < 5   
         Wstar = [0.3 0.4 0.1 0.4 -0.45 0.0214]'; 
     elseif t>15 && t < 35

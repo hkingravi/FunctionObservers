@@ -27,15 +27,20 @@ end
 addpath('./data')
 addpath('./utils')
 
+% plot parameters 
+f_lwidth = 3; 
+f_marksize = 5;
+c_marksize = 15;
+font_size = 15;
+save_results = 1; 
+ext = 'png';
+
 % set seed
 seed = 20; 
 s = RandStream('mt19937ar','Seed',seed);
 RandStream.setGlobalStream(s);
-font_size = 16;
-line_width = 3.0;
 add_process_noise = 'yes';
 
-%% load data
 % save data for unit test
 save_unit_test = 0; 
 
@@ -91,9 +96,9 @@ end
 figure(1);
 plot(meas_noisy(1, :), 'ro')
 hold on; 
-plot(meas_actual(1, :), 'b-', 'LineWidth', line_width)
+plot(meas_actual(1, :), 'b-', 'LineWidth', f_lwidth)
 hold on; 
-plot(meas_kalman(1, :), 'g-', 'LineWidth', line_width)
+plot(meas_kalman(1, :), 'g-', 'LineWidth', f_lwidth)
 legend('measured', 'actual', 'kalman')
 title('Measurements and recovery of x position of aircraft from radar measurements')
 xlabel('Time steps')
@@ -104,9 +109,9 @@ set(findall(gcf,'type','text'),'FontSize', font_size)
 figure(2);
 plot(meas_noisy(2, :), 'ro')
 hold on; 
-plot(meas_actual(2, :), 'b-', 'LineWidth', line_width)
+plot(meas_actual(2, :), 'b-', 'LineWidth', f_lwidth)
 hold on; 
-plot(meas_kalman(2, :), 'g-', 'LineWidth', line_width)
+plot(meas_kalman(2, :), 'g-', 'LineWidth', f_lwidth)
 legend('measured', 'actual', 'kalman')
 title('Measurements and recovery of y position of aircraft from radar measurements')
 xlabel('Time steps')
@@ -116,3 +121,16 @@ set(findall(gcf,'type','text'),'FontSize', font_size)
 
 set(figure(1),'Position',[100 100 800 600]);
 set(figure(2),'Position',[100 100 800 600]);
+
+if save_results == 1
+  save_file1 = './results/kalman_filter_fig1_xpos';
+  save_file2 = './results/kalman_filter_fig2_ypos';
+  
+  set(figure(1),'PaperOrientation','portrait','PaperSize', [8.5 7],...
+    'PaperPositionMode', 'auto', 'PaperType','<custom>');
+  set(figure(2),'PaperOrientation','portrait','PaperSize', [8.5 7],...
+    'PaperPositionMode', 'auto', 'PaperType','<custom>');
+  saveas(figure(1), save_file1, ext)
+  saveas(figure(2), save_file2, ext)
+end
+

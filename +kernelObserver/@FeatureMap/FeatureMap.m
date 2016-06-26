@@ -84,6 +84,10 @@ classdef FeatureMap < handle
           obj.basis = map_struct.centers;
           obj.mapper = map_struct.kernel_obj; 
           obj.nbases = size(map_struct.centers, 2);
+          
+          if isfield(map_struct, 'sort_mat')
+            obj.sort_mat = map_struct.sort_mat; 
+          end  
         end
       elseif strcmp(obj.model_type, 'RandomKitchenSinks')
         if ~isfield(map_struct, 'nbases') || ...
