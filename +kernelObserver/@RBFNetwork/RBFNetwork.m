@@ -190,7 +190,7 @@ classdef RBFNetwork < handle
               xtest = data(:, te_idx);
               ytest = obs(:, te_idx);              
               ypreds = obj.fit_and_predict(xtrain, ytrain, xtest);
-              errs(i) = sum((ypreds-ytest).^2)/size(ypreds, 2);
+              errs(k) = sum((ypreds-ytest).^2)/size(ypreds, 2);
             end  
             
             cv_results(i, j) = mean(errs);
@@ -230,7 +230,7 @@ classdef RBFNetwork < handle
         if ~isfield(obj.optimizer, 'DerivativeCheck')
           obj.optimizer.DerivativeCheck = 'off';        
         else
-          options.DerivativeCheck = 'on';
+          options.DerivativeCheck = obj.optimizer.DerivativeCheck;
         end  
         
         if ~strcmp(obj.optimizer.solver, 'primal') && ...
@@ -336,16 +336,30 @@ classdef RBFNetwork < handle
       mapper.fit(map_struct);
     end  
     
-    function params = get_params(obj)
+    function params_out = get_params(obj)
       %  Return the kernel and observation noise parameters as one vector.
       %
       %  Inputs:
       %    -none
       %
       %  Outputs:
-      %    -params - [kernel_parameters, noise]
-      params = obj.params_final;
-    end  
+      %    -params_out - [kernel_parameters, noise]
+      params_out = obj.params_final;
+    end      
+    
+    function set_params(obj, params_in)
+      %  Return the kernel and observation noise parameters as one vector.
+      %
+      %  Inputs:
+      %    -params_in - [kernel_parameters, noise]
+      %    
+      %  Outputs:
+      %    -none
+      obj.params_final = params_in; 
+      obj.k_obj.k_params = params_in(1);
+      obj.noise = params_in(2);
+      obj.mapper = obj.create_map(); % create feature map using centers and kernel
+    end      
     
     function mval = get(obj,mfield)
       % Get a requested member variable.
@@ -357,10 +371,16 @@ classdef RBFNetwork < handle
           mval = obj.weights;
         case {'nparams'}
           mval = obj.nparams;
+        case {'nbases'}
+          mval = obj.ncent;
         case {'k_obj'}
           mval = obj.k_obj;
+        case {'mapper'}
+          mval = obj.mapper;  
         case {'noise'}
           mval = obj.noise;          
+        case {'optimizer'}
+          mval = obj.optimizer;
         otherwise          
            disp('wrong variable name')
       end      

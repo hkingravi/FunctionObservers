@@ -53,7 +53,7 @@ end
 cell_time = toc;
 disp(['Time taken to construct data cells: ' num2str(cell_time)])
 
-nsamp_tr = 100;  % truncate series for now
+nsamp_tr = 150;  % truncate series for now
 nsamp_te_start = nsamp_tr + 20;  % predict beyond these values
 func_data_tr = orig_func_data_cell(1:nsamp_tr);
 func_obs_tr = orig_func_obs_cell(1:nsamp_tr);
@@ -76,23 +76,23 @@ elseif strcmp(scheme, 'smooth2')
 end
 use_plot_min = 1;
 
-%% first, create finite-dimensional kernel model (RandomKitchenSinks)
+%% first, create finite-dimensional kernel model (RBFNetwork)
 nbases = 300;
-ndim = 1; 
+centers = linspace(min(orig_func_data(:, :, 1)) + 0.5,...
+                   max(orig_func_data(:, :, 1)) - 1, nbases);
 k_type = 'gaussian';
 bandwidth = 1; 
 noise = 0.01;
 optimizer = struct('method', 'likelihood', 'solver', 'primal', ...
-                   'Display', 'off', 'DerivativeCheck', 'off', 'sort_mat', sorted);
-rks = kernelObserver.RandomKitchenSinks(nbases, ndim, k_type, ...
-                                        bandwidth, noise,...
-                                        optimizer);
+                   'Display', 'off', 'DerivativeCheck', 'off');
+rbfn = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
+                                 noise, optimizer);
 meas_type = 'random';
-nmeas = 10;
+nmeas = 30;
 
 %% create KernelObserver object and infer parameters
 param_struct = struct();  % pass in empty struct to use defaults for filter
-kobs = kernelObserver.KernelObserver(rks, nmeas, meas_type, param_struct);
+kobs = kernelObserver.KernelObserver(rbfn, nmeas, meas_type, param_struct);
 tic
 meas_inds = kobs.fit(func_data_tr, func_obs_tr, meas_data);
 meas_actual = meas_data(:, meas_inds);
@@ -128,7 +128,7 @@ tic
 nsamp_te = size(func_data_te, 2); 
 preds_te = cell(1, nsamp_te);
 rms_error_te = zeros(1, nsamp_te);
-weights_stream = zeros(2*nbases, nsamp_te);
+weights_stream = zeros(nbases, nsamp_te);
 te_times = times(nsamp_te_start:nsteps);
 for i=1:nsamp_te
   % make predictions on the entire dataset using current weights
@@ -191,7 +191,7 @@ if strcmp(output,'function')
 end  
 
 predict_time = toc;
-disp(['Time taken to predict on ' num2str(nsamp_te) ' samples: '...
+disp(['Time taken to predict on ' num2str(nsamp_te) ' time steps: '...
        num2str(predict_time) ' seconds.'])
 
      

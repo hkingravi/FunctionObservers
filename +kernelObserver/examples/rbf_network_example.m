@@ -50,7 +50,7 @@ k_type = 'gaussian';
 bandwidth = 0.1; 
 batch_noise = 0.01;
 optimizer = struct('method', 'likelihood', 'solver', 'primal', ...
-                   'Display', 'on');
+                   'Display', 'off', 'DerivativeCheck', 'off');
 rbfn_large = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
                                        batch_noise, optimizer);
 
@@ -71,7 +71,6 @@ rbfn_large = kernelObserver.RBFNetwork(centers, k_type, bandwidth, ...
 tic
 rbfn_large.fit(data, obs); % train in batch 
 batch_estimate_time = toc;
-
 
 pred_data_large = rbfn_large.predict(data);
 K_large = rbfn_large.transform(data);
