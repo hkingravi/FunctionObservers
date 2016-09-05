@@ -19,7 +19,7 @@
 %
 %============================ sqexp_kernel ================================
 %
-%  Name:        rbf_kernel.m
+%  Name:        sqexp_kernel.m
 %
 %  Author:      Hassan A. Kingravi
 %
@@ -29,16 +29,17 @@
 %============================ sqexp_kernel ================================
 function [Kmat, deriv_cell] =  sqexp_kernel(x, y, params)
 ndim = size(x, 1);
-ell = exp(params(1:ndim));  
-sf2 = exp(2*params(ndim+1));
-Kmat = kernelObserver.dis_mat(diag(1./ell)*x,diag(1./ell)*y);
+ell = params(1:ndim);  
+sf2 = params(ndim+1)^2;
+Kmat = kernelObserver.dist_mat(diag(1./ell)*x,diag(1./ell)*y);
 Kmat = sf2*exp(-Kmat/2);   
 
 if nargout > 1
+  nderivs = length(params)-1;
   deriv_cell = cell(1, nderivs+1);
   for i=1:nderivs
-    deriv_cell{i} = Kmat.*kernelObserver.dis_mat(x(i, :)/ell(i),...
-                                                 y(i, :)/ell(i));
+    deriv_cell{i} = Kmat.*kernelObserver.dist_mat(x(i, :)/ell(i),...
+                                                  y(i, :)/ell(i));
   end  
   deriv_cell{nderivs+1} = 2*Kmat; 
 end  

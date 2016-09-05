@@ -58,7 +58,17 @@ if nargout > 1
   nderivs = 1;
   deriv_cell = cell(1, nderivs);
   if strcmpi(k_func,'laplacian')
+    % need to implement this
+    except = MException('VerifyInput:OutOfBounds', ...
+                        ' derivative for Laplacian',...
+                        ' kernel currently not implemented');
+    throw(except);
   elseif strcmpi(k_func,'cauchy')
+    % need to implement this
+    except = MException('VerifyInput:OutOfBounds', ...
+                        ' derivative for Cauchy',...
+                        ' kernel currently not implemented');
+    throw(except);
   elseif strcmpi(k_func,'gaussian')    
     deriv_cell{1} = (1/(bandwidth^3))*Kmat.*Dmat;             
   end

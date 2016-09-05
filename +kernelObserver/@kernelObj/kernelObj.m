@@ -59,12 +59,12 @@ classdef kernelObj < handle
                                'Kernel parameters must be in matrix form');
         throw(exception);
       end      
-      if size(k_params, 1) ~= 1
-        exception = MException('VerifyInput:IncorrectType', ...
-                               'Kernel parameters must be 1 x p matrix');
-        throw(exception);
-      end  
-      if size(k_params, 2) > 1
+%       if size(k_params, 1) ~= 1
+%         exception = MException('VerifyInput:IncorrectType', ...
+%                                'Kernel parameters must be 1 x p matrix');
+%         throw(exception);
+%       end  
+      if size(k_params, 2) > 1 && ~strcmp(k_name, 'sqexp')
          disp(['kernelObj:WARNING: multidimensional bandwidth passed in:' ...
                ' using first element of array'])
          k_params = k_params(1, 1);

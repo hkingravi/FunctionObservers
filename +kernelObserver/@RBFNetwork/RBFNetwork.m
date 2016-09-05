@@ -36,12 +36,15 @@
 %  Modified:  2014/06/03
 %
 %============================= RBFNetwork =================================
-classdef RBFNetwork < handle 
+classdef RBFNetwork < kernelObserver.MLModel
   % class properties   
   properties (Access = public)    
     % some of these values are asked by the user in the constructor
     warnings   = 'on';
     debug_mode = 'on';   
+    fmap                = [];   % generic finite-dimensional feature map
+    optimizer           = [];
+    params_final        = [];   % used by FeatureSpaceGenerator objects
   end
     
   % hidden variables 
@@ -52,12 +55,9 @@ classdef RBFNetwork < handle
     k_params            = [];
     noise_params        = [];
     centers             = [];   % centers for RBF network; dim x ncent
-    weights             = [];   % weights for centers; 1 x ncent  
-    mapper              = [];   % generic finite-dimensional feature map
-    optimizer           = [];
+    weights             = [];   % weights for centers; 1 x ncent          
     jitter              = 1e-4;  
-    nparams             = 2;    % this is fixed for this class
-    params_final        = [];   % used by FeatureSpaceGenerator objects
+    nparams             = [];    % this is fixed for this class    
   end
   
   % class methods 
@@ -91,8 +91,8 @@ classdef RBFNetwork < handle
           throw(exception);
         else
           obj.centers = centers_in;
-          obj.ncent   = size(centers_in,2);
-          obj.weights = randn(obj.ncent,1); % initialize random weights
+          obj.ncent   = size(centers_in, 2);
+          obj.weights = randn(obj.ncent, 1); % initialize random weights
         end
                 
         if nargin >=4
@@ -135,15 +135,15 @@ classdef RBFNetwork < handle
         
         % parse kernel input, and initialize new kernelObj
         obj.k_params = parameters_in;
+        obj.nparams = length(parameters_in) + 1;  % add noise param
         
         if strcmp(obj.optimizer.method, 'none') && size(obj.k_params, 2) > 1
           if strcmp(obj.warnings, 'on')
             disp(['RBFNetwork:WARNING: multiple parameters for kernel' ...
-              ' passed in: setting to first element of array'])
+                  ' passed in: setting to first element of array'])
           end                              
-        end
-        obj.k_obj = kernelObserver.kernelObj(k_func_in, parameters_in(1));
-        
+        end        
+        obj.k_obj = kernelObserver.kernelObj(k_func_in, parameters_in(1:obj.nparams-1));     
       end
 
     end  
@@ -209,8 +209,12 @@ classdef RBFNetwork < handle
       elseif strcmp(obj.optimizer.method, 'likelihood')
         addpath('../../minFunc/minFunc/')
         addpath('../../minFunc/autoDif/')
-        % set up minFunc's parameters
-        params = [log(obj.k_obj.k_params); log(obj.noise)];
+        % set up minFunc's parameters: construct parameter vector
+        params = zeros(obj.nparams, 1);
+        for i=1:obj.nparams-1
+          params(i) = log(obj.k_obj.k_params(i));
+        end  
+        params(obj.nparams) = log(obj.noise);
         
         % parse options
         if ~isfield(obj.optimizer, 'useMex')
@@ -247,21 +251,27 @@ classdef RBFNetwork < handle
         
         %opt_params = minFunc(@obj.negloglik, params, options, data, obs);
         if strcmp(obj.debug_mode, 'on')
-          fprintf('band = %.4f, noise = %.4f\n', exp(opt_params(1)),...
-                                                 exp(opt_params(2)));
+          fprintf('band = %.4f, noise = %.4f\n', exp(opt_params(1:obj.nparams-1)),...
+                                                 exp(opt_params(obj.nparams)));
         end
-        obj.k_obj.k_params = exp(opt_params(1));
-        obj.noise = exp(opt_params(2));
+        obj.k_obj.k_params = exp(opt_params(1:obj.nparams-1));
+        obj.noise = exp(opt_params(obj.nparams));
         [weights_out, ~] = obj.fit_current(data, obs);
         obj.weights = weights_out;
         if strcmp(obj.debug_mode, 'on')
-          disp(['Final kernel params: ' num2str(obj.k_obj.k_params) ...
-                ', noise params: ' num2str(obj.noise)])
+          disp('Final kernel params: ')          
+          disp(num2str(obj.k_obj.k_params))
+          disp(['Final noise params: ' num2str(obj.noise)])
         end
       end
+      % update final parameters
+      for i=1:obj.nparams-1
+        obj.params_final(i) = obj.k_obj.k_params(i);
+      end
+      obj.params_final(obj.nparams) = obj.noise;
       
-      obj.params_final = [obj.k_obj.k_params; obj.noise];
-      obj.mapper = obj.create_map(); 
+      obj.nparams = length(obj.params_final);
+      obj.fmap = obj.create_map();
     end
     
     function [weights, mapped_data] = fit_current(obj, data, obs)
@@ -274,8 +284,8 @@ classdef RBFNetwork < handle
       %
       %  Outputs:
       %    -none 
-      obj.mapper = obj.create_map(); % create feature map using centers and kernel
-      mapped_data = transpose(obj.mapper.transform(data)); % compute kernel matrix
+      obj.fmap = obj.create_map(); % create feature map using centers and kernel
+      mapped_data = transpose(obj.fmap.transform(data)); % compute kernel matrix
       weights = kernelObserver.solve_tikhonov(mapped_data, transpose(obs),...
                                               obj.noise^2);  % solve for weights
     end  
@@ -302,7 +312,7 @@ classdef RBFNetwork < handle
       %
       %  Outputs:
       %    K   - nsamp x ncent kernel matrix 
-      K = obj.mapper.transform(data);
+      K = obj.fmap.transform(data);
     end    
         
     function [f, K] = predict(obj, data_test, weights_in)
@@ -314,7 +324,7 @@ classdef RBFNetwork < handle
       %
       %  Outputs:
       %    -none 
-      K = obj.mapper.transform(data_test);
+      K = obj.fmap.transform(data_test);
       if nargin > 2
         f = transpose(weights_in)*K;
       else
@@ -322,18 +332,18 @@ classdef RBFNetwork < handle
       end
     end    
             
-    function [mapper] = create_map(obj)
+    function [fmap] = create_map(obj)
       %  Given the current kernel object and basis centers, construct a
-      %  FeatureMap object and store it as the internal variable 'mapper'.
+      %  FeatureMap object and store it as the internal variable 'fmap'.
       %
       %  Inputs:
       %    -none
       %
       %  Outputs:
       %    -none       
-      mapper = kernelObserver.FeatureMap('RBFNetwork');
+      fmap = kernelObserver.FeatureMap('RBFNetwork');
       map_struct.centers = obj.centers; map_struct.kernel_obj = obj.k_obj;
-      mapper.fit(map_struct);
+      fmap.fit(map_struct);
     end  
     
     function params_out = get_params(obj)
@@ -358,7 +368,7 @@ classdef RBFNetwork < handle
       obj.params_final = params_in; 
       obj.k_obj.k_params = params_in(1);
       obj.noise = params_in(2);
-      obj.mapper = obj.create_map(); % create feature map using centers and kernel
+      obj.fmap = obj.create_map(); % create feature map using centers and kernel
     end      
     
     function mval = get(obj,mfield)
@@ -375,8 +385,8 @@ classdef RBFNetwork < handle
           mval = obj.ncent;
         case {'k_obj'}
           mval = obj.k_obj;
-        case {'mapper'}
-          mval = obj.mapper;  
+        case {'fmap'}
+          mval = obj.fmap;  
         case {'noise'}
           mval = obj.noise;          
         case {'optimizer'}
@@ -395,7 +405,7 @@ classdef RBFNetwork < handle
           obj.centers = mval;
         case {'weights'}
           obj.weights = mval;
-          obj.mapper = obj.create_map();
+          obj.fmap = obj.create_map();
         otherwise
           disp('wrong variable name')
       end

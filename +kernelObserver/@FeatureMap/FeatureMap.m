@@ -39,7 +39,7 @@ classdef FeatureMap < handle
   
   % class methods 
   methods    
-    function obj = FeatureMap(model_type)
+    function obj = FeatureMap(fmap_type)
       %  Constructor for FeatureMap.
       %
       %  Inputs:
@@ -48,13 +48,13 @@ classdef FeatureMap < handle
       %
       %  Outputs:
       %    -none
-      if ~strcmp(model_type, 'RBFNetwork') &&...
-         ~strcmp(model_type, 'RandomKitchenSinks')
+      if ~strcmp(fmap_type, 'RBFNetwork') &&...
+         ~strcmp(fmap_type, 'RandomKitchenSinks')
         exception = MException('VerifyInput:OutOfBounds', ...
                                ' incorrect choice of optimizer');
         throw(exception);
       end      
-      obj.model_type = model_type; 
+      obj.model_type = fmap_type; 
     end  
                 
     function fit(obj, map_struct)
