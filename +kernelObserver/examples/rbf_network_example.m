@@ -36,7 +36,7 @@ save_results = 1;
 ext = 'png';
 
 % save data for unit test
-save_unit_test = 0; 
+save_unit_test = 1; 
 
 % load previously existing data 
 load KRR_test 
@@ -125,7 +125,7 @@ end
 if save_unit_test ~= 0
   disp('Saving data for unit test...')
   save_file = '../tests/data/RBFNetworkTest.mat';
-  pred_data_expected = pred_data;
-  K_expected = K; 
+  pred_data_expected = pred_data_large;
+  K_expected = K_large; 
   save(save_file, 'pred_data_expected', 'K_expected')  
 end  

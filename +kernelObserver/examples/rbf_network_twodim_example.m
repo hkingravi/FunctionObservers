@@ -45,9 +45,9 @@ s = RandStream('mt19937ar','Seed',seed);
 RandStream.setGlobalStream(s);
 
 %% Step 2: construct function observations
-centers = 0.5*[-2 -2 -2 0 0 0 2 2 2; 
-               2 0 -2 2 0 -2 2 0 -2];
-ncent = size(centers, 2);
+[X_cent, Y_cent] = meshgrid(-2:0.5:2, -2:0.5:2);
+ncent = size(X_cent, 1)*size(X_cent, 2);
+centers = [reshape(X_cent, 1, ncent); reshape(Y_cent, 1, ncent)];
 weights = randn(ncent, 1);
 [X, Y] = meshgrid(-3:0.1:3, -3:0.1:3);
 nsamp = size(X, 1)*size(X, 2);
@@ -88,11 +88,18 @@ rbfn_large = kernelObserver.RBFNetwork(centers, k_type, params_incorrect, ...
 
 tic
 rbfn_large.fit(data, obs); % train in batch 
-batch_estimate_time = toc;
+est_time = toc;
+disp(['Training time for sqexp kernel RBFNetwork with ' num2str(ncent) ...
+      ' centers and ' num2str(nsamp) ' samples: '])
+disp([num2str(est_time) ' seconds.'])    
 
+tic
 pred_data_large = rbfn_large.predict(data);
 K_large = rbfn_large.transform(data);
-disp(['Training time for batch: ' num2str(batch_estimate_time)])
+pred_time = toc; 
+disp(['Prediction and transform time for sqexp kernel RBFNetwork with ' num2str(ncent) ...
+      ' centers and ' num2str(nsamp) ' samples: '])
+disp([num2str(pred_time) ' seconds.'])    
 
 % plot to see estimates 
 Z_est = reshape(pred_data_large, size(X, 1), size(X, 2));
